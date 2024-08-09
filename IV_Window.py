@@ -150,19 +150,19 @@ class IVWindow:
     
     def publish_meas_widgets(self):
         # current
-        self.frame1.grid(row=12, column=0, padx=5, pady=5, sticky="e")
+        self.frame1.grid(row=11, column=0, padx=5, pady=5, sticky="e")
         self.label1.grid(row=0, column=0, padx=5, pady=5)
         
         # sample bias voltage
-        self.frame2.grid(row=12, column=1, padx=5, pady=5, sticky="e")
+        self.frame2.grid(row=11, column=1, padx=5, pady=5, sticky="e")
         self.label2.grid(row=0, column=0, padx=5, pady=5)   
         
         # min voltage
-        self.frame3.grid(row=11, column=0, padx=5, pady=5, sticky="n")
+        self.frame3.grid(row=12, column=0, padx=5, pady=5, sticky="n")
         self.label3.grid(row=0, column=0, padx=5, pady=5)
         
         # max voltage
-        self.frame4.grid(row=11, column=1, padx=5, pady=5, sticky="n")
+        self.frame4.grid(row=12, column=1, padx=5, pady=5, sticky="n")
         self.label4.grid(row=0, column=0, padx=5, pady=5)
 
         # number of setpoints

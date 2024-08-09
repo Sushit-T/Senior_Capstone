@@ -26,21 +26,22 @@ VPIEZO_APPROACH_MIN     = 0.0
 PIEZO_EXTN_RATIO        = 20.0  # (nm per volt)
 PIEZO_CODE_RATIO        = 6553.6
 POS_TOLERANCE           = 0.1
-APPROACH_STEP_SIZE_NM   = 0.025 # nm
+APPROACH_STEP_SIZE_NM   = 0.1 # nm
 FREQ_RES                = 150.0     # Hz
 TUNNELING_SAMPLE_SIZE   = 24
 
 """
 CAP APPROACH GLOBAL VARIABLES
 """
-REGION_1_CAP		    = 90.0 # fF
-STP_SZ_R1			    = 10000.0 
+REGION_1_CAP            = 90.0 # fF
+STP_SZ_R1                = 10000.0 
 CAP_APPROACH_AMPL       = 1
 CAP_APPROACH_FREQ       = 1000
-DELAY_LINE_LEN          = 250
-CRIT_CAP_SLOPE          = 0.025
+DELAY_LINE_LEN          = 50
+CRIT_CAP_SLOPE          = 0.0223
 CAP_APPROACH_NUM_STEPS  = 10
-FFT_AVG_LENGTH          = 12
+FFT_AVG_LENGTH          = 5
+DIFF_AVG_BUF_LEN        = 5
 
 """
 VOLTAGE GLOBAL VARIABLES

@@ -139,27 +139,27 @@ class IZWindow:
     
     def publish_meas_widgets(self):
         # piezo extension
-        self.frame1.grid(row=13, column=0, padx=5, pady=5, sticky=SE)
-        self.label1.grid(row=0, column=0, padx=5, pady=5, sticky="s")
+        #self.frame1.grid(row=13, column=0, padx=5, pady=5, sticky=SE)
+        #self.label1.grid(row=0, column=0, padx=5, pady=5, sticky="s")
         
         # piezo voltage
-        self.frame2.grid(row=12, column=1, padx=5, pady=5, sticky=SE)
+        self.frame2.grid(row=11, column=1, padx=5, pady=5, sticky=SE)
         self.label2.grid(row=0, column=0, padx=5, pady=5)   
         
         # current
-        self.frame3.grid(row=12, column=0, padx=5, pady=5, sticky=NE)
+        self.frame3.grid(row=11, column=0, padx=5, pady=5, sticky=NE)
         self.label3.grid(row=0, column=0, padx=5, pady=5, sticky="n") 
 
         # min voltage
-        self.frame4.grid(row=11, column=0, padx=5, pady=5, sticky="n")
+        self.frame4.grid(row=12, column=0, padx=5, pady=5, sticky="n")
         self.label4.grid(row=0, column=0, padx=5, pady=5)
         
         # max voltage
-        self.frame5.grid(row=11, column=1, padx=5, pady=5, sticky="n")
+        self.frame5.grid(row=12, column=1, padx=5, pady=5, sticky="n")
         self.label5.grid(row=0, column=0, padx=5, pady=5)
 
         # number of setpoints
-        self.frame7.grid(row=13, column=1, padx=5, pady=5, sticky="n")
+        self.frame7.grid(row=13, column=0, padx=5, pady=5, sticky="n")
         self.label9.grid(row=0, column=0, padx=5, pady=5)
         
         # Positioning the notes section
