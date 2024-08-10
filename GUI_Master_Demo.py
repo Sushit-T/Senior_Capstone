@@ -758,6 +758,73 @@ class MeasGUI:
                 messagebox.showerror("ERROR", "Error. Did not receive correct response back.")
         # Turns interactive graph off
         plt.ioff()
+
+    def feedback_controller(self, target_curr):
+        """
+        This function uses feedback to hold a desired tunneling current
+        """
+        global STOP_BTN_FLAG
+        global curr_setpoint
+        global vpiezo_tip
+        global tunneling_steps
+        global curr_data
+        global vb_V
+        global vp_V
+        
+        if self.check_connection():
+            return
+        else:
+        ##########    
+            port = self.parent.serial_ctrl.serial_port
+            
+            if not self.saveCurrentSetpoint():
+                return 
+            
+            # Set sample size to 24
+            self.send_msg_retry(port, globals.MSG_B, ztmCMD.CMD_SET_ADC_SAMPLE_SIZE.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_DONE.value, globals.TUNNELING_SAMPLE_SIZE)
+
+            # Get a measurement from the MCU, send_msg_retry() will change the val of the global vars curr, vbias, vpzo
+            success = self.send_msg_retry(port, globals.MSG_C, ztmCMD.CMD_REQ_DATA.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_MEASUREMENTS.value)
+            
+            if success:
+                # Resets visual graph and data
+                self.parent.graph_gui.reset_graph()
+                
+                # Turns interactive graph on
+                plt.ion()
+                
+                self.startup_leds()
+                self.initializer.disable_widgets(self)
+                
+                while True:
+                    if STOP_BTN_FLAG == 1:
+                        plt.ioff()
+                        break
+                    
+                    # Request Measurement
+                    success = self.send_msg_retry(port, globals.MSG_C, ztmCMD.CMD_REQ_DATA.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_MEASUREMENTS.value)
+                    
+                    if success:
+                        # If no tunneling current is detected, step down with a constant step size
+                        if(curr_data < globals.CONTROLLER_MIN_CURR):
+                            vpiezo_tip, tunneling_steps = self.auto_move_tip(tunneling_steps, globals.CONTROLLER_CONST_STEP_SZ_NM, globals.DIR_DOWN)
+                        # Use feedback control to maintain targer current
+                        else:
+                            error = target_curr - curr_data
+                            dist = error * globals.CONTROLLER_DC_GAIN
+
+                            if(dist < 0):
+                                vpiezo_tip, tunneling_steps = self.auto_move_tip(tunneling_steps, -dist, globals.DIR_UP)
+                            else:
+                                vpiezo_tip, tunneling_steps = self.auto_move_tip(tunneling_steps, dist, globals.DIR_DOWN)
+
+                        self.update_label()
+                        self.parent.graph_gui.update_graph()
+                STOP_BTN_FLAG = 0
+            else:
+                messagebox.showerror("ERROR", "Error. Did not receive correct response back.")
+        # Turns interactive graph off
+        plt.ioff()
             
     
     def auto_move_tip(self, steps, dist, dir):

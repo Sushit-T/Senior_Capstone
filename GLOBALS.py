@@ -31,6 +31,13 @@ FREQ_RES                = 150.0     # Hz
 TUNNELING_SAMPLE_SIZE   = 4
 
 """
+TIP APPROACH GLOBAL VARIABLES
+"""
+CONTROLLER_MIN_CURR                 = 0.1 #nA
+CONTROLLER_CONST_STEP_SZ_NM         = 0.1 #nm    
+CONTROLLER_DC_GAIN                  = 0.0001
+
+"""
 CAP APPROACH GLOBAL VARIABLES
 """
 REGION_1_CAP            = 90.0 # fF
