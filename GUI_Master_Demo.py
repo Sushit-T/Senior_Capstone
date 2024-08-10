@@ -631,7 +631,7 @@ class MeasGUI:
             if not self.saveCurrentSetpoint():
                 return 
             
-            # Set sample size to 24
+            # Set sample size to TUNNELING_SAMPLE_SIZE
             self.send_msg_retry(port, globals.MSG_B, ztmCMD.CMD_SET_ADC_SAMPLE_SIZE.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_DONE.value, globals.TUNNELING_SAMPLE_SIZE)
 
             # Get a measurement from the MCU, send_msg_retry() will change the val of the global vars curr, vbias, vpzo
@@ -646,7 +646,9 @@ class MeasGUI:
                 
                 self.startup_leds()
                 self.initializer.disable_widgets(self)
-                
+
+                stepDownDelayCounter = 0
+                stepDownThreshold = 3
                 while True:
                     if STOP_BTN_FLAG == 1:
                         plt.ioff()
@@ -664,9 +666,12 @@ class MeasGUI:
                                 #return 1, curr_data, vb_V, vp_V, tunneling_steps
                             else:
                                 messagebox.showerror("ERROR", "Error. Unable to adjust the stepper motor.")
-                        else:
-                            vpiezo_tip, tunneling_steps = self.auto_move_tip(tunneling_steps, globals.APPROACH_STEP_SIZE_NM, globals.DIR_DOWN)
-
+                        else:       
+                            # delay stepping down by stepDownThreshold samples                   
+                            if(stepDownDelayCounter == stepDownThreshold-1):
+                                vpiezo_tip, tunneling_steps = self.auto_move_tip(tunneling_steps, globals.APPROACH_STEP_SIZE_NM, globals.DIR_DOWN)
+                            stepDownDelayCounter = (stepDownDelayCounter + 1) % stepDownThreshold
+                        
                         self.update_label()
                         self.parent.graph_gui.update_graph()
                 STOP_BTN_FLAG = 0
@@ -805,57 +810,81 @@ class MeasGUI:
             success = self.send_msg_retry(port, globals.MSG_E, ztmCMD.CMD_VBIAS_SET_SINE.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_DONE.value, globals.CAP_APPROACH_AMPL, globals.CAP_APPROACH_FREQ)
             
             if success:
+                #########
+                # init gui stuff
                 self.parent.graph_gui.reset_graph()
                 plt.ion()
                 self.startup_leds()
                 self.initializer.disable_widgets(self)
                 
+                #######
+                # start cap approach
                 fft_meas = self.get_fft_peak()
                 if fft_meas is None:
                     return
 
                 # Using deque for efficient circular buffer management
-                delay_line = deque([fft_meas] * (globals.DELAY_LINE_LEN + 1), maxlen=globals.DELAY_LINE_LEN + 1)
-                peaks = deque([0] * globals.FFT_AVG_LENGTH, maxlen=globals.FFT_AVG_LENGTH)
+                    # load fft_buffer with zeros
+                fft_buffer = deque([0] * globals.FFT_AVG_LENGTH, maxlen=globals.FFT_AVG_LENGTH)
+                    # load delay_line with first fft msmt
+                delay_line = deque([fft_meas] * (globals.DELAY_LINE_LEN), maxlen=globals.DELAY_LINE_LEN)
+                    # load difference buffer with zeros
+                diff_buffer = deque([0] * (globals.DIFF_AVG_BUF_LEN), maxlen=globals.DIFF_AVG_BUF_LEN)
+                
                 
                 not_done = True
+                # index counters
                 fft_count = 0
-                detector_count = 0
+                delay_index = 0
+                diff_index = 0
+                # variables
+                avg_diff = 0
+                diff = 0
+                fft_peak = 0
                 
+                # cap approach process
                 while not_done:
                     if STOP_BTN_FLAG == 1:
                         plt.ioff()
                         break
                     
                     # Measure fft peak and update the peaks buffer
-                    fft_peak = self.get_fft_peak()
-                    if fft_peak is None:
-                        continue  # Skip this iteration if FFT measurement failed
+                    # gather 5 FFT's
+                    while(fft_count < globals.FFT_AVG_LENGTH):
+                        fft_sample = self.get_fft_peak()
+                        if fft_sample is None:
+                            continue  # Skip this iteration if FFT measurement failed
 
-                    peaks.append(fft_peak)
-
-                    if fft_count >= globals.FFT_AVG_LENGTH - 1:
-                        # Calculate the average of the peak measurements
-                        fft_meas = self.get_avg_meas(peaks)
-
-                        # Update the circular buffer with the new measurement
-                        old_fft_meas = delay_line[0]
-                        delay_line.append(fft_meas)
-
-                        # Calculate difference and check if it exceeds the threshold
-                        diff = fft_meas - old_fft_meas
-                        if diff > globals.CRIT_CAP_SLOPE:
-                            detector_count += 1
-                            if detector_count >= 3:
-                                not_done = False
-                        else:
-                            detector_count = 0
-                            self.send_msg_retry(port, globals.MSG_D, ztmCMD.CMD_STEPPER_ADJ.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_DONE.value, globals.EIGHTH_STEP, globals.DIR_DOWN, globals.CAP_APPROACH_NUM_STEPS)
-
-                        self.update_label()
-                        self.parent.graph_gui.update_graph()
-                    else:
+                        fft_buffer[fft_count] = fft_sample
                         fft_count += 1
+                    # reset counter    
+                    fft_count = 0    
+                    # Calculate the average of the peak measurements
+                    # call this 'fft_peak' for now
+                    fft_peak = self.get_avg_meas(fft_buffer)    
+                      
+                    # calculate new difference
+                    diff = fft_peak - delay_line[delay_index]
+                    # update average difference
+                    avg_diff = avg_diff + (diff - diff_buffer[diff_index])/globals.DIFF_AVG_BUF_LEN 
+                    # load the avg FFT into delay line
+                    delay_line[delay_index] = fft_peak
+                    # load difference buffer
+                    diff_buffer[diff_index] = diff
+                    
+                    # update indices
+                    diff_index = (diff_index + 1) %  globals.DIFF_AVG_BUF_LEN       
+                    delay_index = (delay_index + 1) %  globals.DELAY_LINE_LEN 
+
+                    # Check if difference exceeds the threshold
+                    if diff > globals.CRIT_CAP_SLOPE:
+                        not_done = False
+                    else:
+                        self.send_msg_retry(port, globals.MSG_D, ztmCMD.CMD_STEPPER_ADJ.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_DONE.value, globals.EIGHTH_STEP, globals.DIR_DOWN, globals.CAP_APPROACH_NUM_STEPS)
+
+                    self.update_label()
+                    self.parent.graph_gui.update_graph()
+
                 
                 STOP_BTN_FLAG = 0    
                 plt.ioff()
