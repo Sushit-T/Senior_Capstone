@@ -759,7 +759,7 @@ class MeasGUI:
         # Turns interactive graph off
         plt.ioff()
 
-    def feedback_controller(self, target_curr):
+    def feedback_controller(self):
         """
         This function uses feedback to hold a desired tunneling current
         """
@@ -781,7 +781,7 @@ class MeasGUI:
                 return 
             
             # Set sample size to 24
-            self.send_msg_retry(port, globals.MSG_B, ztmCMD.CMD_SET_ADC_SAMPLE_SIZE.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_DONE.value, globals.TUNNELING_SAMPLE_SIZE)
+            self.send_msg_retry(port, globals.MSG_B, ztmCMD.CMD_SET_ADC_SAMPLE_SIZE.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_DONE.value, globals.CONTROLLER_DEFAULT_SMPL_SZ)
 
             # Get a measurement from the MCU, send_msg_retry() will change the val of the global vars curr, vbias, vpzo
             success = self.send_msg_retry(port, globals.MSG_C, ztmCMD.CMD_REQ_DATA.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_MEASUREMENTS.value)
@@ -810,7 +810,7 @@ class MeasGUI:
                             vpiezo_tip, tunneling_steps = self.auto_move_tip(tunneling_steps, globals.CONTROLLER_CONST_STEP_SZ_NM, globals.DIR_DOWN)
                         # Use feedback control to maintain targer current
                         else:
-                            error = target_curr - curr_data
+                            error = curr_setpoint - curr_data
                             dist = error * globals.CONTROLLER_DC_GAIN
 
                             if(dist < 0):
