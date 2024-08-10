@@ -71,6 +71,7 @@ TUNN_APPR_FLAG  = 0
 CAP_APPR_FLAG   = 0
 PERIODICS_FLAG  = 0
 STOP_BTN_FLAG   = 0
+TUNN_APPROACH_ESCAPE_FLG = 0
 ###########################################
 
 
@@ -698,6 +699,7 @@ class MeasGUI:
         global curr_data
         global vb_V
         global vp_V
+        global TUNN_APPROACH_ESCAPE_FLG
         
         if self.check_connection():
             return
@@ -719,13 +721,14 @@ class MeasGUI:
                 self.parent.graph_gui.reset_graph()
                 
                 # Turns interactive graph on
-                plt.ion()
+                ### TURNED OFF FOR DEBUGGING
+                #plt.ion()
                 
                 self.startup_leds()
                 self.initializer.disable_widgets(self)
 
-                stepDownDelayCounter = 0
-                stepDownThreshold = 3
+                #stepDownDelayCounter = 0
+                #stepDownThreshold = 3
                 while True:
                     if STOP_BTN_FLAG == 1:
                         plt.ioff()
@@ -742,6 +745,7 @@ class MeasGUI:
                             self.piezo_full_retract()
                             if adjust_success:
                                 tunneling_steps -= globals.INC_EIGHT
+                                TUNN_APPROACH_ESCAPE_FLG = 1
                                 plt.ioff()
                                 break
                                 #return 1, curr_data, vb_V, vp_V, tunneling_steps
@@ -749,9 +753,9 @@ class MeasGUI:
                                 messagebox.showerror("ERROR", "Error. Unable to adjust the stepper motor.")
                         else:       
                             # delay stepping down by stepDownThreshold samples                   
-                            if(stepDownDelayCounter == stepDownThreshold-1):
-                                vpiezo_tip, tunneling_steps = self.auto_move_tip(tunneling_steps, globals.APPROACH_STEP_SIZE_NM, globals.DIR_DOWN)
-                            stepDownDelayCounter = (stepDownDelayCounter + 1) % stepDownThreshold
+                            #if(stepDownDelayCounter == stepDownThreshold-1):
+                            vpiezo_tip, tunneling_steps = self.auto_move_tip(tunneling_steps, globals.APPROACH_STEP_SIZE_NM, globals.DIR_DOWN)
+                            #stepDownDelayCounter = (stepDownDelayCounter + 1) % stepDownThreshold
                         
                         self.update_label()
                         self.parent.graph_gui.update_graph()
@@ -807,6 +811,7 @@ class MeasGUI:
                         plt.ioff()
                         self.stop_leds()
                         self.initializer.enable_widgets(self)
+                        STOP_BTN_FLAG = 0
                         return
                     
                     # Request Measurement
@@ -820,15 +825,17 @@ class MeasGUI:
                         else:
                             error = curr_setpoint - curr_data
                             dist = error * globals.CONTROLLER_DC_GAIN
-
+                            print(f"Vpzo = {vpiezo_tip}, dist = {dist}, error = {error}, steps = {tunneling_steps}")
                             if(dist < 0):
-                                vpiezo_tip, tunneling_steps = self.auto_move_tip(tunneling_steps, -dist, globals.DIR_UP)
+                                vpiezo_tip, tunneling_steps = self.auto_move_tip(tunneling_steps, -dist, globals.DIR_UP)               
+                                #time.sleep(0.005)
                             else:
                                 vpiezo_tip, tunneling_steps = self.auto_move_tip(tunneling_steps, dist, globals.DIR_DOWN)
+                                #time.sleep(0.005)
 
                         self.update_label()
                         self.parent.graph_gui.update_graph()
-                STOP_BTN_FLAG = 0
+                
             else:
                 messagebox.showerror("ERROR", "Error. Did not receive correct response back.")
         # Turns interactive graph off
@@ -886,7 +893,7 @@ class MeasGUI:
                     stepSet = self.send_msg_retry(port, globals.MSG_D, ztmCMD.CMD_STEPPER_ADJ.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_DONE.value, globals.EIGHTH_STEP, globals.DIR_UP, globals.NUM_STEPS)
                 # Decrement number of steps 
                 steps -= globals.INC_EIGHT
-                vpiezo_tip = self.piezo_full_extend()
+                #vpiezo_tip = self.piezo_full_extend()
             else:
                 vpiezo_tip -= delta_V
                 # Send message to update vpiezo
@@ -916,6 +923,7 @@ class MeasGUI:
                 vpiezo_tip = globals.VPIEZO_APPROACH_MAX
             while(piezoSet == False):
                 piezoSet = self.send_msg_retry(port, globals.MSG_A, ztmCMD.CMD_PIEZO_ADJ.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_DONE.value, 0, 0, vpiezo_tip)
+            piezoSet = False
         return vpiezo_tip
     
     def piezo_full_retract(self):
@@ -929,15 +937,18 @@ class MeasGUI:
 
         port = self.parent.serial_ctrl.serial_port
         piezoSet = False
+
+        #debug counter
+        dbCount = 0
         # Retract piezo in small increments
-        piezoStep = vpiezo_tip / 32
-        while (vpiezo_tip != globals.VPIEZO_APPROACH_MIN):
-            if vpiezo_tip > globals.VPIEZO_APPROACH_MIN:
-                vpiezo_tip -= piezoStep
-            elif vpiezo_tip < globals.VPIEZO_APPROACH_MIN:
+        piezoStep = (vpiezo_tip - globals.VPIEZO_APPROACH_MIN)/ 32
+        while (vpiezo_tip > globals.VPIEZO_APPROACH_MIN):
+            vpiezo_tip -= piezoStep
+            if vpiezo_tip < globals.VPIEZO_APPROACH_MIN:
                 vpiezo_tip = globals.VPIEZO_APPROACH_MIN
             while(piezoSet == False):
                 piezoSet = self.send_msg_retry(port, globals.MSG_A, ztmCMD.CMD_PIEZO_ADJ.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_DONE.value, 0, 0, vpiezo_tip)
+            piezoSet = False
         return vpiezo_tip
 
     def cap_approach(self):
@@ -1916,6 +1927,7 @@ class GraphGUI:
         global PERIODICS_FLAG
         global CAP_APPR_FLAG
         global TUNN_APPR_FLAG
+        global TUNN_APPROACH_ESCAPE_FLG
         
         # Local variables - calculate update interval based on sample size
         A = 900    # Scaling factor    # mess with this a bit more
@@ -1962,12 +1974,23 @@ class GraphGUI:
         
         elif TUNN_APPR_FLAG:
             # Sample size is set to 24
-            if len(self.y_data) % 150 == 0: 
+            if len(self.y_data) % 1024 == 0:
+                #avg_meas = MeasGUI.get_avg_meas(MeasGUI, self.y_data) 
+                #self.ax.plot(time_now, avg_meas, 'ro')
+                #self.ax.plot(time_now, self.y_data[1023], 'ro')
+                abcd = 1
+                #self.line.set_data(self.x_data, self.y_data)
+                #self.ax.relim()
+                #self.ax.autoscale_view()
+                #self.canvas.draw()
+                #self.canvas.flush_events()
+            elif(TUNN_APPROACH_ESCAPE_FLG):
                 self.line.set_data(self.x_data, self.y_data)
                 self.ax.relim()
                 self.ax.autoscale_view()
                 self.canvas.draw()
                 self.canvas.flush_events()
+                TUNN_APPROACH_ESCAPE_FLG = 0
             
         elif CAP_APPR_FLAG:
             # FFT data sets sample size to 1024

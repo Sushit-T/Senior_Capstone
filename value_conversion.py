@@ -61,6 +61,10 @@ class Convert:
         :return val: Vbias Voltage in 16-bit format used by DAC
         """
         Vbias_int = round(((Vbias_float + 10) * (2 ** 16)) / (4 * 5))
+        if(Vbias_int > 65535):
+            Vbias_int = 65535
+        if(Vbias_int < 0):
+            Vbias_int = 0    
         return Vbias_int
 
     def get_Vpiezo_float(Vpiezo_int):
@@ -85,4 +89,6 @@ class Convert:
         :return val: Vpiezo Voltage in 16-bit format used by DAC
         """
         Vpiezo_int = round(Vpiezo_float * (2 ** 16) / (2 * 5))
+        if(Vpiezo_int > 65535):
+            Vpiezo_int = 65535
         return Vpiezo_int
