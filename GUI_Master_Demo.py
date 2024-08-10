@@ -768,8 +768,8 @@ class MeasGUI:
             
             self.parent.clear_buffer()
             
-            # Set sample size to 24
-            self.send_msg_retry(port, globals.MSG_B, ztmCMD.CMD_SET_ADC_SAMPLE_SIZE.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_DONE.value, globals.TUNNELING_SAMPLE_SIZE)
+            # Set sample size to 26
+            self.send_msg_retry(port, globals.MSG_B, ztmCMD.CMD_SET_ADC_SAMPLE_SIZE.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_DONE.value, globals.CONTROLLER_DEFAULT_SMPL_SZ)
 
             # Get a measurement from the MCU, send_msg_retry() will change the val of the global vars curr, vbias, vpzo
             success = self.send_msg_retry(port, globals.MSG_C, ztmCMD.CMD_REQ_DATA.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_MEASUREMENTS.value)
@@ -1762,10 +1762,7 @@ class GraphGUI:
         global TUNN_APPR_FLAG
         global TUNN_APPROACH_ESCAPE_FLG
         
-        # Local variables - calculate update interval based on sample size
-        A = 900    # Scaling factor    # mess with this a bit more
-        k = 0.005   # Decay rate
-        B = 10     # Minimum interval
+        rollover_time = globals.ROLLOVER_GRAPH_TIME
 
         # Update data with next data points
         self.y_data.append(curr_data)
@@ -1781,8 +1778,44 @@ class GraphGUI:
         self.ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M:%S'))
         self.ax.xaxis.set_major_locator(mdates.SecondLocator(interval=2))
         # Controls how much time is shown within the graph, currently displays the most recent 10 seconds
-        self.ax.set_xlim(datetime.datetime.now() - datetime.timedelta(seconds=globals.ROLLOVER_GRAPH_TIME), datetime.datetime.now())
+        self.ax.set_xlim(datetime.datetime.now() - datetime.timedelta(seconds=rollover_time), datetime.datetime.now())
 
+        # Local variables - calculate update interval based on sample size
+        A = 900    # Scaling factor    # mess with this a bit more
+        k = 0.005   # Decay rate
+        B = update_interval = 10     # Minimum interval
+        
+        if PERIODICS_FLAG:
+            if sample_size_save == None:
+                update_interval = B
+            else:
+                A = 900     # Scaling factor    
+                k = 0.005   # Decay rate
+                update_interval = max(int(A* math.exp(-k * sample_size_save) + B), B)     # Minimum interval
+        
+        elif TUNN_APPR_FLAG:
+            update_interval = 150
+            if TUNN_APPROACH_ESCAPE_FLG:
+                update_interval = 1
+                self.line.set_data(self.x_data, self.y_data)
+                #TUNN_APPROACH_ESCAPE_FLG = 0
+            if len(self.y_data) % update_interval and not TUNN_APPROACH_ESCAPE_FLG: # Calculate the average of y_data
+                self.avg_y = sum(self.y_data) / len(self.y_data) if len(self.y_data) > 0 else 0
+                # Create a constant y-value list with the average value
+                self.avg_y_data = [self.avg_y] * len(self.x_data)
+                self.line.set_data(self.x_data, self.avg_y_data)
+        
+        elif CAP_APPR_FLAG:
+            update_interval = 10
+        
+        if len(self.y_data) % update_interval:
+            if not TUNN_APPR_FLAG:
+                self.line.set_data(self.x_data, self.y_data)
+            self.ax.relim()
+            self.ax.autoscale_view()
+            self.canvas.draw()
+            self.canvas.flush_events()
+        '''
         if PERIODICS_FLAG:
             # Sample size can be set by the user, but default is 1024
             if sample_size_save == None:
@@ -1820,7 +1853,7 @@ class GraphGUI:
                 self.canvas.draw()
                 self.canvas.flush_events()
             
-            '''    
+        """  
         elif TUNN_APPR_FLAG:
             # Sample size is set to 24
             if len(self.y_data) % 1024 == 0:
@@ -1840,7 +1873,8 @@ class GraphGUI:
                 self.canvas.draw()
                 self.canvas.flush_events()
                 TUNN_APPROACH_ESCAPE_FLG = 0
-            '''
+        """
+        
         elif CAP_APPR_FLAG:
             # FFT data sets sample size to 1024
             if len(self.y_data) % 10 == 0: 
@@ -1858,7 +1892,8 @@ class GraphGUI:
                 self.ax.autoscale_view()
                 self.canvas.draw()
                 self.canvas.flush_events()
-                
+        '''
+        
     def reset_graph(self):
         """
         Resets the visual graph and clears the data points.

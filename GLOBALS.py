@@ -36,6 +36,7 @@ FEEDBACK CONTROLLER GLOBAL VARIABLES
 CONTROLLER_MIN_CURR                 = 0.1       # minimum current (nA)
 CONTROLLER_CONST_STEP_SZ_NM         = 0.1       # constant step size (nm)    
 CONTROLLER_DC_GAIN                  = 0.0001    # DC gain
+CONTROLLER_DEFAULT_SMPL_SZ          = 16
 
 """
 CAP APPROACH GLOBAL VARIABLES
