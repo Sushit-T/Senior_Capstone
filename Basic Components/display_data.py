@@ -1,36 +1,35 @@
-import time
-import random
 import tkinter as tk
+from tkinter import messagebox, Toplevel, Label
+from PIL import Image, ImageTk, ImageSequence
 
+class GifPopup:
+    def __init__(self, parent, gif_path):
+        self.top = Toplevel(parent)
+        self.top.title("yippee")
+        self.gif_label = Label(self.top)
+        self.gif_label.pack()
 
-class TempView(tk.Frame):
-    def __init__(self, master):
-        super().__init__(master)     # call base class
-        self.label1_text = tk.StringVar()
-        self.label1_text.set("initial value")
-        self.label1=tk.Label(self.master, textvariable=self.label1_text,
-                            fg='blue', font=("Arial", 18, "bold"),
-                            background='#CDC5D9')
-        self.label1.grid(row=0,column=0)
- 
-        self.master.grid_columnconfigure(1, minsize=100)
- 
-        tk.Button(self.master, text="Quit", command=self.master.destroy,
-                  bg="red").grid(row=1, column=0)
- 
-        ## update the label in two different ways
-        self.getTemp()
-    
-    def getTemp(self):
-        temp = str(random.randint(10, 100))
-        self.update(temp)
-        self.master.after(2000, self.getTemp) ## sleep for 2 seconds
- 
-    def update(self, temp):
-        self.label1_text.set(temp)
-        print(F"The temperature is {temp}")
+        self.load_gif(gif_path)
 
-random.seed()
+    def load_gif(self, gif_path):
+        self.gif = Image.open(gif_path)
+        self.frames = [ImageTk.PhotoImage(frame.copy().convert("RGBA")) for frame in ImageSequence.Iterator(self.gif)]
+        self.current_frame = 0
+        self.update_gif()
+
+    def update_gif(self):
+        self.gif_label.configure(image=self.frames[self.current_frame])
+        self.current_frame = (self.current_frame + 1) % len(self.frames)
+        self.top.after(100, self.update_gif)  # Adjust the delay for animation speed
+
+def show_message_with_gif():
+    GifPopup(root, "Basic Components/yippee.gif")
+
 root = tk.Tk()
-app = TempView(master=root)
-app.mainloop()
+root.title(":3")
+root.geometry("200x75")
+
+btn = tk.Button(root, text="click me!", command=show_message_with_gif)
+btn.pack(pady=20)
+
+root.mainloop()

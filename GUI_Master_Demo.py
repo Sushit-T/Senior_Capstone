@@ -729,7 +729,9 @@ class MeasGUI:
                 while True:
                     if STOP_BTN_FLAG == 1:
                         plt.ioff()
-                        break
+                        self.stop_leds()
+                        self.initializer.enable_widgets(self)
+                        return
                     
                     success = self.send_msg_retry(port, globals.MSG_C, ztmCMD.CMD_REQ_DATA.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_MEASUREMENTS.value)
                     
@@ -756,8 +758,12 @@ class MeasGUI:
                 STOP_BTN_FLAG = 0
             else:
                 messagebox.showerror("ERROR", "Error. Did not receive correct response back.")
+        messagebox.showinfo("TUNNELING APPROACH", "Success. The tunneling approach has ended. Now entering the feedback controller.")
+        self.feedback_controller()
         # Turns interactive graph off
-        plt.ioff()
+        #plt.ioff()
+        #self.stop_leds()
+        #self.initializer.enable_widgets(self)
 
     def feedback_controller(self):
         """
@@ -791,15 +797,17 @@ class MeasGUI:
                 self.parent.graph_gui.reset_graph()
                 
                 # Turns interactive graph on
-                plt.ion()
+                #plt.ion()
                 
-                self.startup_leds()
-                self.initializer.disable_widgets(self)
+                #self.startup_leds()
+                #self.initializer.disable_widgets(self)
                 
                 while True:
                     if STOP_BTN_FLAG == 1:
                         plt.ioff()
-                        break
+                        self.stop_leds()
+                        self.initializer.enable_widgets(self)
+                        return
                     
                     # Request Measurement
                     success = self.send_msg_retry(port, globals.MSG_C, ztmCMD.CMD_REQ_DATA.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_MEASUREMENTS.value)
@@ -825,7 +833,9 @@ class MeasGUI:
                 messagebox.showerror("ERROR", "Error. Did not receive correct response back.")
         # Turns interactive graph off
         plt.ioff()
-            
+        self.stop_leds()
+        self.initializer.enable_widgets(self)
+        messagebox.showinfo("FEEDBACK CONTROLLER", "Success. The feedback controller has ended.")
     
     def auto_move_tip(self, steps, dist, dir):
         """
