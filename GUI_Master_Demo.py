@@ -632,15 +632,15 @@ class MeasGUI:
         return value  
     
 ############################################# TIP APPROACH #################################################
-    def tunneling_approach(self):
-        """
-        Starts the tunneling approach algorithm ina  separate thread to avoid freezing
-        the GUI.
-        """
-        self.tunn_approach_thread = threading.Thread(target=self._tunneling_approach_impl)
-        self.tunn_approach_thread.start()
+    #def tunneling_approach(self):
+    #    """
+    #    Starts the tunneling approach algorithm ina  separate thread to avoid freezing
+    #    the GUI.
+    #    """
+    #    self.tunn_approach_thread = threading.Thread(target=self._tunneling_approach_impl)
+    #    self.tunn_approach_thread.start()
         
-    def _tunneling_approach_impl(self):
+    def tunneling_approach(self):#_tunneling_approach_impl(self):
         """
         This function looks for a desired tunneling current using the traditional algorithm.
         """
@@ -1800,21 +1800,22 @@ class GraphGUI:
                 update_interval = max(int(A* math.exp(-k * sample_size_save) + B), B)     # Minimum interval
         
         elif TUNN_APPR_FLAG:
-            update_interval = 150
+            update_interval = 512
             if TUNN_APPROACH_ESCAPE_FLG:
                 update_interval = 1
                 self.line.set_data(self.x_data, self.y_data)
                 #TUNN_APPROACH_ESCAPE_FLG = 0
-            if len(self.y_data) % update_interval and not TUNN_APPROACH_ESCAPE_FLG: # Calculate the average of y_data
-                self.avg_y = sum(self.y_data) / len(self.y_data) if len(self.y_data) > 0 else 0
+            if (len(self.y_data) % update_interval == 0) and not TUNN_APPROACH_ESCAPE_FLG: # Calculate the average of y_data
+                #self.avg_y = sum(self.y_data) / len(self.y_data) if len(self.y_data) > 0 else 0
                 # Create a constant y-value list with the average value
-                self.avg_y_data = [self.avg_y] * len(self.x_data)
-                self.line.set_data(self.x_data, self.avg_y_data)
+                #self.avg_y_data = [self.avg_y] * len(self.x_data)
+                #self.line.set_data(self.x_data, self.avg_y_data)
+                self.line.set_data(self.x_data, self.y_data)
         
         elif CAP_APPR_FLAG:
             update_interval = 10
         
-        if len(self.y_data) % update_interval:
+        if (len(self.y_data) % update_interval == 0):
             if not TUNN_APPR_FLAG:
                 self.line.set_data(self.x_data, self.y_data)
             self.ax.relim()
