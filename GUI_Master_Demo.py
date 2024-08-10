@@ -218,7 +218,7 @@ class ComGUI:
         """
         self.drop_com.destroy()
         self.ComOptionMenu()
-        self.drop_com.grid(column=2, row=2, padx=self.padx)
+        self.drop_com.grid(column=2, row=0, padx=self.padx)
         logic = []
         self.connect_ctrl(logic)
 
@@ -743,6 +743,8 @@ class MeasGUI:
                             if adjust_success:
                                 tunneling_steps -= globals.INC_EIGHT
                                 plt.ioff()
+                                messagebox.showinfo("TUNNELING APPROACH", "Success. The tunneling approach has ended. Now entering the feedback controller.")
+                                self.feedback_controller(curr_setpoint)
                                 break
                                 #return 1, curr_data, vb_V, vp_V, tunneling_steps
                             else:
@@ -758,8 +760,6 @@ class MeasGUI:
                 STOP_BTN_FLAG = 0
             else:
                 messagebox.showerror("ERROR", "Error. Did not receive correct response back.")
-        messagebox.showinfo("TUNNELING APPROACH", "Success. The tunneling approach has ended. Now entering the feedback controller.")
-        self.feedback_controller(curr_data)
         # Turns interactive graph off
         #plt.ioff()
         #self.stop_leds()
@@ -796,17 +796,12 @@ class MeasGUI:
                 # Resets visual graph and data
                 self.parent.graph_gui.reset_graph()
                 
-                # Turns interactive graph on
-                #plt.ion()
-                
-                #self.startup_leds()
-                #self.initializer.disable_widgets(self)
-                
                 while True:
                     if STOP_BTN_FLAG == 1:
                         plt.ioff()
                         self.stop_leds()
                         self.initializer.enable_widgets(self)
+                        STOP_BTN_FLAG = 0
                         return
                     
                     # Request Measurement
@@ -828,15 +823,14 @@ class MeasGUI:
 
                         self.update_label()
                         self.parent.graph_gui.update_graph()
-                STOP_BTN_FLAG = 0
             else:
                 messagebox.showerror("ERROR", "Error. Did not receive correct response back.")
-        # Turns interactive graph off
-        plt.ioff()
-        self.stop_leds()
-        self.initializer.enable_widgets(self)
-        messagebox.showinfo("FEEDBACK CONTROLLER", "Success. The feedback controller has ended.")
-    
+                # Turns interactive graph off
+                plt.ioff()
+                self.stop_leds()
+                self.initializer.enable_widgets(self)
+
+            
     def auto_move_tip(self, steps, dist, dir):
         """
         This function changes the tip height using either the piezo or stepper motor.
@@ -1082,147 +1076,6 @@ class MeasGUI:
             return None
         return sum(valid_measurements) / len(valid_measurements)
     
-
-    '''
-    # OLD METHOD
-    def cap_approach(self):
-        """
-        @brief: This function gets the tip close to the sample by using the displacement current
-        between the tip and the sample. It looks at the difference between the present displacement
-        current and a previous displacement current. It uses a circular buffer to store the delayed
-        displacement currents.
-
-        @retval: None
-        """
-        global STOP_BTN_FLAG
-        
-        delay_line = [0] * (globals.DELAY_LINE_LEN + 1) # Initialize delay_line with zeros
-        
-        if self.check_connection():
-            return
-        else:
-            port = self.parent.serial_ctrl.serial_port
-            
-            # Start Sinusoidal Vbias
-            success = self.send_msg_retry(port, globals.MSG_E, ztmCMD.CMD_VBIAS_SET_SINE.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_DONE.value, globals.CAP_APPROACH_AMPL, globals.CAP_APPROACH_FREQ)
-            
-            if success:
-                #print("\n----------BEGINNING CAP APPROACH ALGORITHM----------")
-                # Resets visual graph and data
-                self.parent.graph_gui.reset_graph()
-                
-                # Turns interactive graph on
-                plt.ion()
-                self.startup_leds()
-                self.initializer.disable_widgets(self)
-                
-                # Get first fft measurement
-                fft_meas = self.get_fft_peak()
-                if fft_meas is None:
-                    #print("ERROR. Unable to start cap approach due to invalid FFT measurements.")
-                    return
-                
-                for i in range(globals.DELAY_LINE_LEN + 1): delay_line[i] = fft_meas
-                notDone = 1
-                fft_count = 0
-                peaks = [0] * globals.FFT_AVG_LENGTH # Initialize peaks list
-                detector_count = 0
-                delay_index = 0
-                
-                while(notDone):
-                    if STOP_BTN_FLAG == 1:
-                        plt.ioff()
-                        break
-                    
-                    # Measure fft peak
-                    peaks[fft_count] = self.get_fft_peak()
-
-                    if(fft_count >= globals.FFT_AVG_LENGTH-1):
-                        fft_meas = self.get_avg_meas(peaks)
-                        delay_line[delay_index] = fft_meas # Store the new displacement current
-
-                        # Increments index of circular buffer
-                        delay_index = (delay_index + 1) % (globals.DELAY_LINE_LEN+1) 
-
-                        # takes difference between the new current and the current 
-                        diff = fft_meas - delay_line[delay_index] 
-                        if(diff > globals.CRIT_CAP_SLOPE):
-                            detector_count += 1
-                            if(detector_count >= 3):
-                                notDone = 0
-                            else:
-                                notDone = 1
-                        else:
-                            detector_count = 0
-                            notDone = 1
-                            success_move = self.send_msg_retry(port, globals.MSG_D, ztmCMD.CMD_STEPPER_ADJ.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_DONE.value, globals.EIGHTH_STEP, globals.DIR_DOWN, globals.CAP_APPROACH_NUM_STEPS)
-                            #if success_move:
-                                #print("SUCCESS. Stepper motor moved in cap approach.")
-                            #else:
-                                #print("ERROR. Stepper motor failed to move in capacitance approach.")
-                        self.update_label()
-                        self.parent.graph_gui.update_graph()
-                    else:
-                        fft_count = fft_count + 1
-                STOP_BTN_FLAG = 0    
-                plt.ioff()
-                self.stop_leds()
-                self.initializer.enable_widgets(self)
-                self.parent.clear_buffer()
-                success_stop_vbias = self.send_msg_retry(port, globals.MSG_C, ztmCMD.CMD_VBIAS_STOP_SINE.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_DONE.value)
-                #if success_stop_vbias:
-                    #print("SUCCESS. Sinusoidal vbias has stopped.")
-                #else:
-                    #print("ERROR. Sinusoidal vbias failed to stop.")
-                
-    def get_fft_peak(self):
-        """
-        [ADD DESCRIPTION HERE.]
-
-        Returns:
-            _type_: _description_
-        """
-        port = self.parent.serial_ctrl.serial_port
-        
-        result = self.sendMsgCapApproach(port, globals.MSG_C, ztmCMD.CMD_REQ_FFT_DATA.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_FFT_DATA.value)
-        if result is None:
-            #print("ERROR. Failed to retrieve FFT data.")
-            return None
-        else:
-            peak, _ = result
-            return peak
-    
-    def get_avg_meas(self, measurements):
-        """
-        [ADD DESCRIPTION HERE.]
-
-        Args:
-            measurements (_type_): _description_
-
-        Returns:
-            _type_: _description_
-        """
-        
-        total = 0
-        count = 0
-
-        for measurement in measurements:
-            if measurement is not None:
-                total += measurement # Sum the first element of each tuple
-                count += 1
-
-        if count == 0:
-            return None  # Return None if no valid measurements were found
-
-        avg = total / count
-        return avg
-        
-        #sum = 0
-        #for i in range(len(measurements)): sum += measurements[i]
-        #sum /= len(measurements)
-        #return sum
-    '''
-    
     def enable_periodics(self):
         """
         Function to enable and read periodic data from the MCU.
@@ -1261,12 +1114,14 @@ class MeasGUI:
                         if response[status_byte] == status_msmt or response[status_byte] == status_ack:
                             curr_data = round(struct.unpack('f', bytes(response[3:7]))[0], 3) 
                     self.update_label()
-                    self.parent.graph_gui.update_graph()
-                STOP_BTN_FLAG = 0    
+                    self.parent.graph_gui.update_graph() 
             else:
                 messagebox.showerror("ERROR.", "Failed to enable periodic data. Try again.")
             # Turns interactive graph off
-            plt.ioff()      
+            plt.ioff()    
+            self.stop_leds()
+            self.initializer.enable_widgets()
+            STOP_BTN_FLAG = 0
 
        
     def savePiezoValue(self, _=None):         
