@@ -67,10 +67,12 @@ tip_app_total_steps     = None
 
 startup_flag    = 0
 
-TUNN_APPR_FLAG  = 0
-CAP_APPR_FLAG   = 0
-PERIODICS_FLAG  = 0
-STOP_BTN_FLAG   = 0
+TUNN_APPR_FLAG      = 0
+CAP_APPR_FLAG       = 0
+PERIODICS_FLAG      = 0
+FEEDBACK_CTRL_FLAG  = 0
+TUNN_APPROACH_ESCAPE_FLG = 0
+STOP_BTN_FLAG       = 0
 ###########################################
 
 
@@ -272,18 +274,38 @@ class ComGUI:
         A message sent to the MCU upon valid connection of a port, starting the MCU program.
         """
         global startup_flag
+        global curr_pos_total_steps
+        global vb_V
+        global vp_V
         
         port = self.parent.serial_ctrl.serial_port
         
         msg_response = self.parent.meas_gui.send_msg_retry(port, globals.MSG_C, ztmCMD.CMD_CLR.value, ztmSTATUS.STATUS_RDY.value, ztmSTATUS.STATUS_ACK.value)   
         
         if msg_response:
+            self.parent.clear_buffer()
+            time.sleep(0.1)
+            print("=============== STARTUP ROUTINE ===============")
+            # Obtain step count
+            curr_pos_total_steps = self.parent.meas_gui.send_msg_retry(port, globals.MSG_C, ztmCMD.CMD_REQ_STEP_COUNT.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_STEP_COUNT.value)
+            print(f"Step count upon startup: {curr_pos_total_steps}")
+            
+            # Set vbias to 0 upon startup
+            self.parent.meas_gui.send_msg_retry(port, globals.MSG_A, ztmCMD.CMD_SET_VBIAS.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_DONE.value, 0, 0, 0)
+            # Set vpzo to 0 upon startup
+            self.parent.meas_gui.send_msg_retry(port, globals.MSG_A, ztmCMD.CMD_PIEZO_ADJ.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_DONE.value, 0, 0, 0)
+            # Check vbias and vpzo have been set to 0
+            self.parent.meas_gui.send_msg_retry(port, globals.MSG_C, ztmCMD.CMD_REQ_DATA.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_MEASUREMENTS.value)
+            print(f"Measured vbias: {vb_V} V")
+            print(f"Measured vpzo: {vp_V} V")
+            
             self.btn_connect["text"] = "Disconnect"
             self.btn_refresh["state"] = "disable"
             self.drop_com["state"] = "disable"
             InfoMsg = f"Successful UART connection using {self.clicked_com.get()}."
             messagebox.showinfo("Connected", InfoMsg)
             startup_flag = 1
+            self.parent.clear_buffer()
         else:
             self.btn_connect["text"] = "Connect"
             self.btn_refresh["state"] = "active"
@@ -515,6 +537,9 @@ class MeasGUI:
                         if isinstance(unpackResponse, tuple) and len(unpackResponse) == 3:
                             if testMsg_hex[status_byte] == status_msmt:
                                 curr_data, vb_V, vp_V = unpackResponse
+                                #print(f"Vbias: {vb_V} V")
+                                #print(f"Vpzo: {vp_V} V")
+                                
                                 vpiezo_tip = vp_V
                                 return True
                         elif testMsg_hex[status_byte] == status_step_count:
@@ -524,98 +549,18 @@ class MeasGUI:
                     elif testMsg_hex[status_byte] == status_msmt:
                         if cmd == cmd_set_vbias:
                             vb_V = round(Convert.get_Vbias_float(struct.unpack('H',bytes(testMsg[7:9]))[0]), 3)
+                            #print(f"Vbias: {vb_V} V")
+                            
                             return vb_V
                         elif cmd == cmd_adj_vpzo:
                             vp_V = round(Convert.get_Vpiezo_float(struct.unpack('H',bytes(testMsg[9:11]))[0]), 3) 
+                            #print(f"Vpzo: {vp_V} V")
+                            
                             return vp_V
                 attempt += 1
             else:
                 messagebox.showerror("ERROR", "Error. Please try again.")
                 return False
-    
-    '''
-    def send_msg_retry(self, port, msg_type, cmd, status, status_response, *params, max_attempts=globals.MAX_ATTEMPTS):
-        """
-        Function to send a message to the MCU and retry if we do
-        not receive expected response.
-
-        Args:
-            port (Serial): Port the serial is communicating with.
-            msg_type (byte): Send message type byte.
-            cmd (byte): Sent command byte.
-            status (byte): Sent status byte.
-            status_response (byte): Expected status response byte.
-            max_attempts (int, optional): Number of maximum attempts that the message will be sent. Defaults to 10.
-        Returns:
-            float: Depending on the status response, the function will return a specific value or values.
-        """
-        global curr_data
-        global vb_V
-        global vp_V
-        global vpiezo_tip
-        
-        attempt = 0
-
-        while attempt < max_attempts:
-            if msg_type == globals.MSG_A:
-                msg_response = self.parent.ztm_serial.sendMsgA(port, cmd, status, *params)
-            elif msg_type == globals.MSG_B:
-                msg_response = self.parent.ztm_serial.sendMsgB(port, cmd, status, *params)
-            elif msg_type == globals.MSG_C:
-                msg_response = self.parent.ztm_serial.sendMsgC(port, cmd, status)
-            elif msg_type == globals.MSG_D:
-                msg_response = self.parent.ztm_serial.sendMsgD(port, cmd, status, *params)
-            elif msg_type == globals.MSG_E:
-                msg_response = self.parent.ztm_serial.sendMsgE(port, *params)
-            else:
-                messagebox.showerror("ERROR", "Internal error. Please try again.")
-            
-            if msg_response:
-                #testMsg = self.parent.serial_ctrl.ztmGetMsg()
-                testMsg = self.parent.serial_ctrl.receive_serial()
-                
-                # Unpack data and display on the GUI
-                if testMsg:
-                    testMsg_hex = [b for b in testMsg]
-                    # checks if status byte read is the same as status byte expected AND that the response is 11 bytes long
-                    if testMsg_hex[globals.STAT_BYTE] == status_response and len(testMsg) == globals.MSG_BYTES:
-                        unpackResponse = self.parent.ztm_serial.unpackRxMsg(testMsg)
-                        
-                        if isinstance(unpackResponse, tuple):
-                            if len(unpackResponse) == 3:
-                                if testMsg_hex[globals.STAT_BYTE] == ztmSTATUS.STATUS_MEASUREMENTS.value:
-                                    curr_data, vb_V, vp_V = unpackResponse
-                                    vpiezo_tip = vp_V
-                                    return True
-                        else:
-                            if testMsg_hex[globals.STAT_BYTE] == ztmSTATUS.STATUS_STEP_COUNT.value:
-                                return unpackResponse  
-                        return True
-                    
-                    elif testMsg_hex[globals.STAT_BYTE] == ztmSTATUS.STATUS_NACK.value:
-                        return
-                    elif testMsg_hex[globals.STAT_BYTE] == ztmSTATUS.STATUS_FAIL.value:
-                        return
-                    elif testMsg_hex[globals.STAT_BYTE] == ztmSTATUS.STATUS_RESEND.value:
-                        return
-                    # overcurrent(?)
-                    elif testMsg_hex[globals.STAT_BYTE] == ztmSTATUS.STATUS_BUSY.value:
-                        return
-                    elif testMsg_hex[globals.STAT_BYTE] == ztmSTATUS.STATUS_ERROR.value:
-                        return 
-                    else:
-                        if testMsg_hex[globals.STAT_BYTE] == ztmSTATUS.STATUS_MEASUREMENTS.value:
-                            if cmd == ztmCMD.CMD_SET_VBIAS.value:
-                                vb_V = round(Convert.get_Vbias_float(struct.unpack('H',bytes(testMsg[7:9]))[0]), 3)
-                                return vb_V
-                            elif cmd == ztmCMD.CMD_PIEZO_ADJ.value:
-                                vp_V = round(Convert.get_Vpiezo_float(struct.unpack('H',bytes(testMsg[9:11]))[0]), 3) 
-                                return vp_V
-                attempt += 1
-                
-            else:
-                return False
-    '''
     
     def send_msg_cap_approach(self, port, cmd, status, status_response, max_attempts=globals.MAX_ATTEMPTS, timeout=globals.TIMEOUT):
         """
@@ -689,9 +634,19 @@ class MeasGUI:
 ############################################# TIP APPROACH #################################################
     def tunneling_approach(self):
         """
+        Starts the tunneling approach algorithm ina  separate thread to avoid freezing
+        the GUI.
+        """
+        self.tunn_approach_thread = threading.Thread(target=self._tunneling_approach_impl)
+        self.tunn_approach_thread.start()
+        
+    def _tunneling_approach_impl(self):
+        """
         This function looks for a desired tunneling current using the traditional algorithm.
         """
         global STOP_BTN_FLAG
+        global TUNN_APPROACH_ESCAPE_FLG
+        global FEEDBACK_CTRL_FLAG
         global curr_setpoint
         global vpiezo_tip
         global tunneling_steps
@@ -742,9 +697,8 @@ class MeasGUI:
                             self.piezo_full_retract()
                             if adjust_success:
                                 tunneling_steps -= globals.INC_EIGHT
-                                plt.ioff()
-                                messagebox.showinfo("TUNNELING APPROACH", "Success. The tunneling approach has ended. Now entering the feedback controller.")
-                                self.feedback_controller(curr_setpoint)
+                                TUNN_APPROACH_ESCAPE_FLG = 1
+                                FEEDBACK_CTRL_FLAG = 1
                                 break
                                 #return 1, curr_data, vb_V, vp_V, tunneling_steps
                             else:
@@ -758,6 +712,11 @@ class MeasGUI:
                         self.update_label()
                         self.parent.graph_gui.update_graph()
                 STOP_BTN_FLAG = 0
+                plt.ioff()
+                messagebox.showinfo("TUNNELING APPROACH", "Success. The tunneling approach has ended. You can now enter the feedback controller.")
+                self.feedback_ctrl_btn.configure(state="normal")
+                self.stop_leds()
+                self.initializer.enable_widgets(self)
             else:
                 messagebox.showerror("ERROR", "Error. Did not receive correct response back.")
         # Turns interactive graph off
@@ -765,11 +724,27 @@ class MeasGUI:
         #self.stop_leds()
         #self.initializer.enable_widgets(self)
 
-    def feedback_controller(self, target_curr):
+############################################# FEEDBACK CONTROL #################################################
+    
+    def feedback_controller(self):
         """
-        This function uses feedback to hold a desired tunneling current
+        Starts the feedback controller separate thread to avoid freezing
+        the GUI.
+        """
+        self.feedback_ctrl_thread = threading.Thread(target=self._feedback_ctrl_impl)
+        self.feedback_ctrl_thread.start()
+    
+        
+    def _feedback_ctrl_impl(self):
+        """
+        This function uses feedback to hold a desired tunneling current.
+
+        Args:
+            target_curr (float): This is the target tunneling current.
         """
         global STOP_BTN_FLAG
+        global FEEDBACK_CTRL_FLAG
+        global TUNN_APPR_FLAG
         global curr_setpoint
         global vpiezo_tip
         global tunneling_steps
@@ -781,10 +756,17 @@ class MeasGUI:
             return
         else:
         ##########    
+            TUNN_APPR_FLAG = 0
+            if FEEDBACK_CTRL_FLAG == 0:
+                messagebox.showerror("ERROR", "Error. Tunneling current has not been found yet.")
+                return 
+            
             port = self.parent.serial_ctrl.serial_port
             
             if not self.saveCurrentSetpoint():
                 return 
+            
+            self.parent.clear_buffer()
             
             # Set sample size to 24
             self.send_msg_retry(port, globals.MSG_B, ztmCMD.CMD_SET_ADC_SAMPLE_SIZE.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_DONE.value, globals.TUNNELING_SAMPLE_SIZE)
@@ -795,6 +777,9 @@ class MeasGUI:
             if success:
                 # Resets visual graph and data
                 self.parent.graph_gui.reset_graph()
+                plt.ion()
+                self.startup_leds()
+                self.initializer.disable_widgets(self)
                 
                 while True:
                     if STOP_BTN_FLAG == 1:
@@ -813,7 +798,7 @@ class MeasGUI:
                             vpiezo_tip, tunneling_steps = self.auto_move_tip(tunneling_steps, globals.CONTROLLER_CONST_STEP_SZ_NM, globals.DIR_DOWN)
                         # Use feedback control to maintain targer current
                         else:
-                            error = target_curr - curr_data
+                            error = curr_setpoint - curr_data
                             dist = error * globals.CONTROLLER_DC_GAIN
 
                             if(dist < 0):
@@ -880,7 +865,7 @@ class MeasGUI:
                     stepSet = self.send_msg_retry(port, globals.MSG_D, ztmCMD.CMD_STEPPER_ADJ.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_DONE.value, globals.EIGHTH_STEP, globals.DIR_UP, globals.NUM_STEPS)
                 # Decrement number of steps 
                 steps -= globals.INC_EIGHT
-                vpiezo_tip = self.piezo_full_extend()
+                #vpiezo_tip = self.piezo_full_extend()
             else:
                 vpiezo_tip -= delta_V
                 # Send message to update vpiezo
@@ -1082,6 +1067,7 @@ class MeasGUI:
         """
         global STOP_BTN_FLAG
         global curr_data
+        global vp_V
         
         status_byte = globals.STAT_BYTE
         status_msmt = ztmSTATUS.STATUS_MEASUREMENTS.value
@@ -1113,6 +1099,8 @@ class MeasGUI:
                     if response:
                         if response[status_byte] == status_msmt or response[status_byte] == status_ack:
                             curr_data = round(struct.unpack('f', bytes(response[3:7]))[0], 3) 
+                            vp_V = round(Convert.get_Vpiezo_float(struct.unpack('H',bytes(response[9:11]))[0]), 3) 
+                            #print(f"Vpiezo: {vp_V}") 
                     self.update_label()
                     self.parent.graph_gui.update_graph() 
             else:
@@ -1120,7 +1108,7 @@ class MeasGUI:
             # Turns interactive graph off
             plt.ioff()    
             self.stop_leds()
-            self.initializer.enable_widgets()
+            self.initializer.enable_widgets(self)
             STOP_BTN_FLAG = 0
 
        
@@ -1614,7 +1602,7 @@ class MeasGUI:
         Method to update the value of ADC current in label 2.
         """
         global curr_data
-        global vpiezo_dist
+        global vp_V
         
         # Get current offset from label 4
         try:
@@ -1623,7 +1611,8 @@ class MeasGUI:
             self.curr_offset = 0.0  # Default to 0 if the value is not a valid float
         curr_data += self.curr_offset
         self.label2.configure(text=f"{curr_data:.4f} nA")
-        self.label11.configure(text=f"{vpiezo_dist:.4f}")
+        #self.label11.configure(text=f"{vpiezo_dist:.4f}")
+        self.label12.configure(text=f"{vp_V:.3f} ")
 
     def save_notes(self, _=None):
         """
@@ -1757,7 +1746,7 @@ class GraphGUI:
 
         # Create a canvas to embed the figure in Tkinter
         self.canvas = FigureCanvasTkAgg(self.fig, master=self.root)
-        self.canvas.get_tk_widget().grid(row=0, column=3, columnspan=6, rowspan=10, padx=10, pady=5)
+        self.canvas.get_tk_widget().grid(row=0, column=3, columnspan=6, rowspan=10, padx=10, pady=5, sticky="n")
         
     
     def update_graph(self):
@@ -1771,6 +1760,7 @@ class GraphGUI:
         global PERIODICS_FLAG
         global CAP_APPR_FLAG
         global TUNN_APPR_FLAG
+        global TUNN_APPROACH_ESCAPE_FLG
         
         # Local variables - calculate update interval based on sample size
         A = 900    # Scaling factor    # mess with this a bit more
@@ -1815,15 +1805,42 @@ class GraphGUI:
                     self.canvas.draw()
                     self.canvas.flush_events()
         
+            
         elif TUNN_APPR_FLAG:
             # Sample size is set to 24
             if len(self.y_data) % 150 == 0: 
-                self.line.set_data(self.x_data, self.y_data)
+                # Calculate the average of y_data
+                self.avg_y = sum(self.y_data) / len(self.y_data) if len(self.y_data) > 0 else 0
+                # Create a constant y-value list with the average value
+                self.avg_y_data = [self.avg_y] * len(self.x_data)
+                
+                self.line.set_data(self.x_data, self.avg_y_data)
                 self.ax.relim()
                 self.ax.autoscale_view()
                 self.canvas.draw()
                 self.canvas.flush_events()
             
+            '''    
+        elif TUNN_APPR_FLAG:
+            # Sample size is set to 24
+            if len(self.y_data) % 1024 == 0:
+                #avg_meas = MeasGUI.get_avg_meas(MeasGUI, self.y_data) 
+                #self.ax.plot(time_now, avg_meas, 'ro')
+                #self.ax.plot(time_now, self.y_data[1023], 'ro')
+                abcd = 1
+                #self.line.set_data(self.x_data, self.y_data)
+                #self.ax.relim()
+                #self.ax.autoscale_view()
+                #self.canvas.draw()
+                #self.canvas.flush_events()
+            elif(TUNN_APPROACH_ESCAPE_FLG):
+                self.line.set_data(self.x_data, self.y_data)
+                self.ax.relim()
+                self.ax.autoscale_view()
+                self.canvas.draw()
+                self.canvas.flush_events()
+                TUNN_APPROACH_ESCAPE_FLG = 0
+            '''
         elif CAP_APPR_FLAG:
             # FFT data sets sample size to 1024
             if len(self.y_data) % 10 == 0: 
@@ -1833,6 +1850,15 @@ class GraphGUI:
                 self.canvas.draw()
                 self.canvas.flush_events()
         
+        # Feedback control
+        else:
+            if len(self.y_data) % 10 == 0: 
+                self.line.set_data(self.x_data, self.y_data)
+                self.ax.relim()
+                self.ax.autoscale_view()
+                self.canvas.draw()
+                self.canvas.flush_events()
+                
     def reset_graph(self):
         """
         Resets the visual graph and clears the data points.
