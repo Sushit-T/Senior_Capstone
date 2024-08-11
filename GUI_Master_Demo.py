@@ -459,6 +459,7 @@ class MeasGUI:
             STOP_BTN_FLAG = 1
             self.parent.stop_reading()
 
+    
     def send_msg_retry(self, port, msg_type, cmd, status, status_response, *params, max_attempts=globals.MAX_ATTEMPTS):
         """
         Function to send a message to the MCU and retry if we do
@@ -505,6 +506,8 @@ class MeasGUI:
             msg_response = send_msg(port, cmd, status, *params) if msg_type != globals.MSG_E else send_msg(port, *params)
             if msg_response:
                 testMsg = self.parent.serial_ctrl.receive_serial()
+                #testMsg = self.parent.serial_ctrl.ztmGetMsg()
+                
                 # Unpack data and display on the GUI
                 if testMsg:
                     testMsg_hex = list(testMsg)
