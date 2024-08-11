@@ -345,7 +345,7 @@ class MeasGUI:
         # Local variables for vpzo adjusting
         self.vpzo_down  = 0
         self.vpzo_up    = 0
-        self.total_voltage = 0.0
+        vpiezo_tip = 0.0
         
         # Local variables for stepper motor adjusting
         self.step_up    = 0
@@ -683,6 +683,7 @@ class MeasGUI:
             CAP_APPR_FLAG = 0
             PERIODICS_FLAG = 0
             FEEDBACK_CTRL_FLAG = 0
+            TUNN_APPROACH_ESCAPE_FLG = 0
             
             # Set sample size to TUNNELING_SAMPLE_SIZE
             self.send_msg_retry(port, globals.MSG_B, ztmCMD.CMD_SET_ADC_SAMPLE_SIZE.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_DONE.value, globals.TUNNELING_SAMPLE_SIZE)
@@ -737,7 +738,7 @@ class MeasGUI:
                 STOP_BTN_FLAG = 0
                 plt.ioff()
                 messagebox.showinfo("TUNNELING APPROACH", f"Success. The tunneling approach has ended. Received {curr_data} nA at Piezo Voltage of {vpiezo_tip} V. You can now enter the feedback controller.")
-                self.feedback_ctrl_btn.configure(state="normal")
+                #self.feedback_ctrl_btn.configure(state="normal")
                 self.stop_leds()
                 self.initializer.enable_widgets(self)
             else:
@@ -1187,7 +1188,10 @@ class MeasGUI:
             self.root.focus()
             globals.Ki = float(self.ki_label.get())
             print(f"Saved Ki: {globals.Ki}")
-            
+
+    ###################################### DELETE LATER, DON'T FORGET ##########################################   
+    ############################################################################################################
+     
     def savePiezoValue(self, _=None):         
         """
         Method to save the piezo voltage delta value; the
@@ -1246,26 +1250,28 @@ class MeasGUI:
         Method to send total piezo voltage to MCU, with a valid range
         of 0 to 10 V.
         """
+        global vpiezo_tip
+        
         if self.check_connection():
             return
         else:
             port = self.parent.serial_ctrl.serial_port
             
             delta_v_float = self.get_float_value(self.label10, 1.0, "Piezo Voltage")
-            if globals.VPIEZO_MIN <= self.total_voltage <= globals.VPIEZO_MAX:
+            if globals.VPIEZO_MIN <= vpiezo_tip <= globals.VPIEZO_MAX:
                 if self.vpzo_up:
-                    if self.total_voltage + delta_v_float <= globals.VPIEZO_MAX:
-                        self.total_voltage += delta_v_float
+                    if vpiezo_tip + delta_v_float <= globals.VPIEZO_MAX:
+                        vpiezo_tip += delta_v_float
                     else:
-                        self.total_voltage = globals.VPIEZO_MAX
+                        vpiezo_tip = globals.VPIEZO_MAX
                         messagebox.showerror("INVALID", "Total voltage exceeds 10 V. Maximum allowed is 10 V.")
                         return
                     self.vpzo_up = 0
                 elif self.vpzo_down:
-                    if self.total_voltage - delta_v_float >= globals.VPIEZO_MIN:
-                        self.total_voltage -= delta_v_float
+                    if vpiezo_tip - delta_v_float >= globals.VPIEZO_MIN:
+                        vpiezo_tip -= delta_v_float
                     else:
-                        self.total_voltage = globals.VPIEZO_MIN
+                        vpiezo_tip = globals.VPIEZO_MIN
                         messagebox.showerror("INVALID", "Total voltage is below 0 V. Minimum allowed is 0 V.")
                         return
                     self.vpzo_down = 0
@@ -1277,13 +1283,13 @@ class MeasGUI:
             self.parent.clear_buffer()
                 
             start_time = time.time()
-            success = self.send_msg_retry(port, globals.MSG_A, ztmCMD.CMD_PIEZO_ADJ.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_DONE.value, 0, 0, self.total_voltage)
+            success = self.send_msg_retry(port, globals.MSG_A, ztmCMD.CMD_PIEZO_ADJ.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_DONE.value, 0, 0, vpiezo_tip)
 
             while not success and (time.time() - start_time) < globals.TIMEOUT:
-                success = self.send_msg_retry(port, globals.MSG_A, ztmCMD.CMD_PIEZO_ADJ.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_DONE.value, 0, 0, self.total_voltage)
+                success = self.send_msg_retry(port, globals.MSG_A, ztmCMD.CMD_PIEZO_ADJ.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_DONE.value, 0, 0, vpiezo_tip)
             if isinstance(success, bool):       # If we received a DONE msg
                 if success:
-                    self.label12.configure(text=f"{self.total_voltage:.3f} ")
+                    self.label12.configure(text=f"{vpiezo_tip:.3f} ")
                     return
                 else:
                     messagebox.showinfo("Information", "Did not process change in value within timeout period. Please try again.")
@@ -1297,8 +1303,8 @@ class MeasGUI:
                 # Unpack new vpzo value
                 _, _, vpzo_new = self.parent.ztm_serial.unpackRxMsg(testMsg)
                 
-                if abs(vpzo_new - self.total_voltage) <= 0.05 * self.total_voltage:
-                    self.label12.configure(text=f"{self.total_voltage:.3f} ")
+                if abs(vpzo_new - vpiezo_tip) <= 0.05 * vpiezo_tip:
+                    self.label12.configure(text=f"{vpiezo_tip:.3f} ")
                     return
                 else:
                     messagebox.showinfo("Information", f"Did not process change in value within {globals.TIMEOUT} period. Please try again.")
