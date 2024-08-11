@@ -450,7 +450,7 @@ class MeasGUI:
         FEEDBACK_CTRL_FLAG = 0
         
         self.start_reading()
-
+        
     def start_reading(self):
         """
         Initializes the data reading process when the start button is pressed.
@@ -746,7 +746,6 @@ class MeasGUI:
 ############################################# END OF TIP APPROACH #################################################
 
 ############################################# FEEDBACK CONTROL #################################################
-    
     #def feedback_controller(self):
     #    """
     #    Starts the feedback controller separate thread to avoid freezing
@@ -936,6 +935,7 @@ class MeasGUI:
         piezoSet = False
 
         # Retract piezo in small increments
+                                   
         piezoStep = (vpiezo_tip - globals.VPIEZO_APPROACH_MIN)/ 32
         while (vpiezo_tip > globals.VPIEZO_APPROACH_MIN):
             vpiezo_tip -= piezoStep
@@ -945,6 +945,7 @@ class MeasGUI:
                 piezoSet = self.send_msg_retry(port, globals.MSG_A, ztmCMD.CMD_PIEZO_ADJ.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_DONE.value, 0, 0, vpiezo_tip)
             piezoSet = False
         return vpiezo_tip
+
 
 ############################################# CAPACITANCE APPROACH #################################################
     def cap_approach(self):
@@ -1164,7 +1165,23 @@ class MeasGUI:
             self.initializer.enable_widgets(self)
             STOP_BTN_FLAG = 0
 
-       
+    ############################################################################################################
+    ###################################### DELETE LATER, DON'T FORGET ##########################################
+    def saveKp(self, _=None):
+            self.root.focus()
+            globals.Kp = float(self.kp_label.get())
+            print(f"Saved Kp: {globals.Kp}")
+
+    def saveKd(self, _=None):
+            self.root.focus()
+            globals.Kd = float(self.kd_label.get())
+            print(f"Saved Kd: {globals.Kd}")
+
+    def saveKi(self, _=None):
+            self.root.focus()
+            globals.Ki = float(self.ki_label.get())
+            print(f"Saved Ki: {globals.Ki}")
+            
     def savePiezoValue(self, _=None):         
         """
         Method to save the piezo voltage delta value; the

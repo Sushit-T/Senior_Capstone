@@ -162,11 +162,18 @@ class HomepageWidgets:
         meas_gui.fine_adjust_btn_up = ctk.CTkButton(master=meas_gui.fine_adjust_frame, image=meas_gui.add_btn_image2, text = "", width=40, height=40, compound="bottom", fg_color="#eeeeee", bg_color="#eeeeee", corner_radius=0, command=meas_gui.stepper_motor_up)
         meas_gui.fine_adjust_btn_down = ctk.CTkButton(master=meas_gui.fine_adjust_frame, image=meas_gui.add_btn_image3, text="", width=40, height=40, compound="bottom", fg_color="#eeeeee", bg_color="#eeeeee", corner_radius=0, command=meas_gui.stepper_motor_down)
 
-        # setup the drop option menu
-        #meas_gui.DropDownMenu()
-        
-        # put on the grid all the elements
-        #meas_gui.publish()
+        # Tip controller - DELETE LATER
+        meas_gui.kp_frame = LabelFrame(meas_gui.root, text="Kp", padx=10, pady=2, bg="#ADD8E6")
+        meas_gui.kp_label = Entry(meas_gui.kp_frame, bg="white", width=24)
+        meas_gui.kp_label.bind("<Return>", meas_gui.saveKp)
+
+        meas_gui.kd_frame = LabelFrame(meas_gui.root, text="Kd", padx=10, pady=2, bg="#ADD8E6")
+        meas_gui.kd_label = Entry(meas_gui.kd_frame, bg="white", width=24)
+        meas_gui.kd_label.bind("<Return>", meas_gui.saveKd)
+
+        meas_gui.ki_frame = LabelFrame(meas_gui.root, text="Ki", padx=10, pady=2, bg="#ADD8E6")
+        meas_gui.ki_label = Entry(meas_gui.ki_frame, bg="white", width=24)
+        meas_gui.ki_label.bind("<Return>", meas_gui.saveKi)
 
     def publish(self, meas_gui):
         """
@@ -229,6 +236,16 @@ class HomepageWidgets:
         # reset home position
         meas_gui.return_to_home_frame.grid(row=10, column=9, sticky="w", padx=20)
         meas_gui.return_to_home_pos.grid(row=0, column=0, padx=18)
+        
+        # tip controller - delete later
+        meas_gui.kp_frame.grid(row=4, column=2)
+        meas_gui.kp_label.grid(row=0, column=0)
+        
+        meas_gui.kd_frame.grid(row=5, column=2)
+        meas_gui.kd_label.grid(row=0, column=0)
+        
+        meas_gui.ki_frame.grid(row=6, column=2)
+        meas_gui.ki_label.grid(row=0, column=0)
         
     def disable_widgets(self, meas_gui):
         '''
