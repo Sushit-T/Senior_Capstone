@@ -680,6 +680,7 @@ class MeasGUI:
             CAP_APPR_FLAG = 0
             PERIODICS_FLAG = 0
             FEEDBACK_CTRL_FLAG = 0
+            TUNN_APPROACH_ESCAPE_FLG = 0
             
             # Set sample size to TUNNELING_SAMPLE_SIZE
             self.send_msg_retry(port, globals.MSG_B, ztmCMD.CMD_SET_ADC_SAMPLE_SIZE.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_DONE.value, globals.TUNNELING_SAMPLE_SIZE)
@@ -734,7 +735,7 @@ class MeasGUI:
                 STOP_BTN_FLAG = 0
                 plt.ioff()
                 messagebox.showinfo("TUNNELING APPROACH", f"Success. The tunneling approach has ended. Received {curr_data} nA at Piezo Voltage of {vpiezo_tip} V. You can now enter the feedback controller.")
-                self.feedback_ctrl_btn.configure(state="normal")
+                #self.feedback_ctrl_btn.configure(state="normal")
                 self.stop_leds()
                 self.initializer.enable_widgets(self)
             else:
@@ -1181,7 +1182,10 @@ class MeasGUI:
             self.root.focus()
             globals.Ki = float(self.ki_label.get())
             print(f"Saved Ki: {globals.Ki}")
-            
+
+    ###################################### DELETE LATER, DON'T FORGET ##########################################   
+    ############################################################################################################
+     
     def savePiezoValue(self, _=None):         
         """
         Method to save the piezo voltage delta value; the
@@ -1685,7 +1689,6 @@ class MeasGUI:
             self.curr_offset = 0.0  # Default to 0 if the value is not a valid float
         curr_data += self.curr_offset
         self.label2.configure(text=f"{curr_data:.4f} nA")
-        #self.label11.configure(text=f"{vpiezo_dist:.4f}")
         self.label12.configure(text=f"{vp_V:.3f} ")
 
     def save_notes(self, _=None):
