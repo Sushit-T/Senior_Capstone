@@ -1169,15 +1169,18 @@ class MeasGUI:
     ###################################### DELETE LATER, DON'T FORGET ##########################################
     def saveKp(self, _=None):
             self.root.focus()
-            globals.Kp = self.kp_frame.get()
+            globals.Kp = float(self.kp_label.get())
+            print(f"Saved Kp: {globals.Kp}")
 
     def saveKd(self, _=None):
             self.root.focus()
-            globals.Kd = self.kd_frame.get()
+            globals.Kd = float(self.kd_label.get())
+            print(f"Saved Kd: {globals.Kd}")
 
     def saveKi(self, _=None):
             self.root.focus()
-            globals.Ki = self.ki_frame.get()
+            globals.Ki = float(self.ki_label.get())
+            print(f"Saved Ki: {globals.Ki}")
             
     def savePiezoValue(self, _=None):         
         """
