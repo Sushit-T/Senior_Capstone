@@ -632,15 +632,17 @@ class MeasGUI:
         return value  
     
 ############################################# TIP APPROACH #################################################
-    #def tunneling_approach(self):
-    #    """
-    #    Starts the tunneling approach algorithm ina  separate thread to avoid freezing
-    #    the GUI.
-    #    """
-    #    self.tunn_approach_thread = threading.Thread(target=self._tunneling_approach_impl)
-    #    self.tunn_approach_thread.start()
-        
-    def tunneling_approach(self):#_tunneling_approach_impl(self):
+    '''
+    def tunneling_approach(self):
+        """
+        Starts the tunneling approach algorithm ina  separate thread to avoid freezing
+        the GUI.
+        """
+        self.tunn_approach_thread = threading.Thread(target=self._tunneling_approach_impl)
+        self.tunn_approach_thread.start()
+    '''
+    
+    def tunneling_approach(self):
         """
         This function looks for a desired tunneling current using the traditional algorithm.
         """
@@ -1789,7 +1791,7 @@ class GraphGUI:
         # Local variables - calculate update interval based on sample size
         A = 900    # Scaling factor    # mess with this a bit more
         k = 0.005   # Decay rate
-        B = update_interval = 10     # Minimum interval
+        B = update_interval = 10     # Minimum interval and default value
         
         if PERIODICS_FLAG:
             if sample_size_save == None:
