@@ -664,6 +664,8 @@ class MeasGUI:
             
             if not self.saveCurrentSetpoint():
                 return 
+            if not self.saveSampleBias():
+                return
             
             # Set sample size to TUNNELING_SAMPLE_SIZE
             self.send_msg_retry(port, globals.MSG_B, ztmCMD.CMD_SET_ADC_SAMPLE_SIZE.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_DONE.value, globals.TUNNELING_SAMPLE_SIZE)
@@ -725,6 +727,7 @@ class MeasGUI:
         #plt.ioff()
         #self.stop_leds()
         #self.initializer.enable_widgets(self)
+############################################# END OF TIP APPROACH #################################################
 
 ############################################# FEEDBACK CONTROL #################################################
     
@@ -816,8 +819,8 @@ class MeasGUI:
                 plt.ioff()
                 self.stop_leds()
                 self.initializer.enable_widgets(self)
+############################################# END OF FEEDBACK CONTROL #################################################
 
-            
     def auto_move_tip(self, steps, dist, dir):
         """
         This function changes the tip height using either the piezo or stepper motor.
@@ -921,6 +924,7 @@ class MeasGUI:
                 piezoSet = self.send_msg_retry(port, globals.MSG_A, ztmCMD.CMD_PIEZO_ADJ.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_DONE.value, 0, 0, vpiezo_tip)
         return vpiezo_tip
 
+############################################# CAPACITANCE APPROACH #################################################
     def cap_approach(self):
         """
         Starts the capacitance approach algorithm in a separate thread to avoid
@@ -938,6 +942,7 @@ class MeasGUI:
         displacement currents.
         """
         global STOP_BTN_FLAG
+        global vbias_save
         
         if self.check_connection():
             return
@@ -983,8 +988,16 @@ class MeasGUI:
                 # cap approach process
                 while not_done:
                     if STOP_BTN_FLAG == 1:
-                        plt.ioff()
                         break
+                        '''
+                        plt.ioff()
+                        self.stop_leds()
+                        self.initializer.enable_widgets(self)
+                        self.parent.clear_buffer()
+                        self.send_msg_retry(port, globals.MSG_C, ztmCMD.CMD_VBIAS_STOP_SINE.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_DONE.value)
+                        STOP_BTN_FLAG = 0
+                        return
+                        '''
                     
                     # Measure fft peak and update the peaks buffer
                     # gather 5 FFT's
@@ -1017,19 +1030,24 @@ class MeasGUI:
                     # Check if difference exceeds the threshold
                     if diff > globals.CRIT_CAP_SLOPE:
                         not_done = False
+                        vbias_save = 0.0
                     else:
                         self.send_msg_retry(port, globals.MSG_D, ztmCMD.CMD_STEPPER_ADJ.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_DONE.value, globals.EIGHTH_STEP, globals.DIR_DOWN, globals.CAP_APPROACH_NUM_STEPS)
 
                     self.update_label()
                     self.parent.graph_gui.update_graph()
 
-                
-                STOP_BTN_FLAG = 0    
+                # Process when the capacitance approach is complete
+                STOP_BTN_FLAG = 0   
                 plt.ioff()
                 self.stop_leds()
                 self.initializer.enable_widgets(self)
                 self.parent.clear_buffer()
                 self.send_msg_retry(port, globals.MSG_C, ztmCMD.CMD_VBIAS_STOP_SINE.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_DONE.value)
+                
+                self.root.focus()
+                self.label6.delete(0, END)
+                self.label6.insert(0, str(vbias_save)) 
     
     def get_fft_peak(self):
         """
@@ -1038,10 +1056,15 @@ class MeasGUI:
         Returns:
             peak (float): FFT peak data measurement.
         """
+        global STOP_BTN_FLAG
+        
         port = self.parent.serial_ctrl.serial_port
         
+        if STOP_BTN_FLAG == 1:
+            return None
+        
         result = self.send_msg_cap_approach(port, ztmCMD.CMD_REQ_FFT_DATA.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_FFT_DATA.value)
-        if result is None:
+        if result is None or STOP_BTN_FLAG == 1:
             return None
         else:
             #self.update_label()
@@ -1058,11 +1081,17 @@ class MeasGUI:
         Returns:
             sum(valid_measurements) / len(valid_measurements) (float): Average of the FFT measurements.
         """
+        global STOP_BTN_FLAG
+        
+        if STOP_BTN_FLAG == 1:
+            return None
+        
         valid_measurements = [m for m in measurements if m is not None]
-        if not valid_measurements:
+        if not valid_measurements or STOP_BTN_FLAG == 1:
             return None
         return sum(valid_measurements) / len(valid_measurements)
-    
+############################################# END OF CAPACITANCE APPROACH #################################################
+
     def enable_periodics(self):
         """
         Function to enable and read periodic data from the MCU.
@@ -1235,20 +1264,15 @@ class MeasGUI:
         if self.check_connection():
             return
         else:
-            try:
-                curr_setpoint = float(self.label3.get())
-                if 0.1 <= curr_setpoint <= 10:
-                    return True
-                else:
-                    self.label3.delete(0,END)
-                    self.label3.insert(0,0.000)
-                    messagebox.showerror("Invalid Value", "Error. Please enter a valid current setpoint value.")
-                    return False
-            except ValueError:
+            curr_setpoint = self.get_float_value(self.label3, 0.0, "current setpoint")
+            if 0.1 <= curr_setpoint <= 10:
+                return True
+            else:
                 self.label3.delete(0,END)
                 self.label3.insert(0,0.000)
-                messagebox.showerror("Invalid Value", "Error. Please enter a valid current setpoint value.")
+                messagebox.showerror("Invalid Value", "Invalid value. Please enter a valid current setpoint value.")
                 return False
+
 
     def saveCurrentOffset(self, _=None): 
         """
@@ -1281,6 +1305,7 @@ class MeasGUI:
         """
         global vbias_save
         global vbias_done_flag
+        global TUNN_APPR_FLAG
         
         if self.check_connection():
             self.root.focus()
@@ -1289,14 +1314,22 @@ class MeasGUI:
             self.root.focus()
             port = self.parent.serial_ctrl.serial_port
             try:
-                vbias_save = self.get_float_value(self.label6, 1.0, "Voltage Bias")
+                # Checks if it is a non-numeric value
+                vbias_save = self.get_float_value(self.label6, 0.0, "sample bias")
+                
+                if TUNN_APPR_FLAG:
+                    if vbias_save == 0.0 or vbias_save == None:
+                        messagebox.showerror("Invalid Value", f"Invalid voltage bias. Please enter a nonzero value.")
+                        return
+                
+                # Checks if it is within range
                 if vbias_save < globals.VBIAS_MIN:
                     vbias_save = globals.VBIAS_MIN + 1
-                    messagebox.showerror("Invalid Value", f"Invalid input. Sample bias defaulted to {vbias_save}.")
+                    messagebox.showerror("Invalid Value", f"Invalid input. Sample bias cannot subceed -10 V.")
                 elif vbias_save > globals.VBIAS_MAX:
                     vbias_save = globals.VBIAS_MAX - 1
-                    messagebox.showerror("Invalid Value", f"Invalid input. Sample bias defaulted to {vbias_save}.")
-                
+                    messagebox.showerror("Invalid Value", f"Invalid input. Sample bias cannot exceed 10 V.")
+                    
                 self.label6.delete(0, END)
                 self.label6.insert(0, vbias_save)
                     
@@ -1311,7 +1344,7 @@ class MeasGUI:
                 
                 if isinstance(success, bool):       # if we received a DONE msg
                     if success:
-                        return
+                        return True
                     else:
                         messagebox.showinfo("Information", "Did not process change in value within timeout period. Please try again.")
                 elif isinstance(success, float):    # if we received a MEASUREMENT msg
@@ -1331,8 +1364,8 @@ class MeasGUI:
                     messagebox.showinfo("Information", "Did not process change in value within timeout period. Please try again.")
             except ValueError:
                 self.root.focus()
-                self.sample_size.delete(0, END)
-                messagebox.showerror("Invalid Value", "Please enter a number from -10 to 10.")
+                self.label6.delete(0, END)
+                messagebox.showerror("Invalid Value", "Please enter a number from -10 V to 10 V.")
             
             
     def saveSampleRate(self, _=None):
@@ -1398,10 +1431,10 @@ class MeasGUI:
                 if sample_size_save not in range(1, 1025):
                     if sample_size_save < 1:
                         sample_size_save = 1
-                        messagebox.showerror("Invalid Value", "Invalid input. Sample size defaulted to 1.")
+                        messagebox.showerror("Invalid Value", "Invalid input. Sample size cannot subceed 1.")
                     elif sample_size_save > 1024:
                         sample_size_save = 1024
-                        messagebox.showerror("Invalid Value", "Invalid input. Sample size defaulted to 1024.")
+                        messagebox.showerror("Invalid Value", "Invalid input. Sample size cannot exceed 1024.")
 
                     sample_size_str = str(sample_size_save)
                     self.root.focus()
@@ -1426,7 +1459,7 @@ class MeasGUI:
             except ValueError:
                 self.root.focus()
                 self.sample_size.delete(0, END)
-                messagebox.showerror("Invalid Value", "Please enter a whole number from 1 to 1024.")
+                messagebox.showerror("Invalid Value", "Invalid input. Please enter a whole number from 1 to 1024.")
                         
     def saveStepperMotorAdjust(self, _=None):
         """
@@ -1723,7 +1756,7 @@ class GraphGUI:
     """
     Function to initialize the data arrays and the graphical display.
     """
-    def __init__(self, root, meas_gui):
+    def __init__(self, root, meas_gui, max_data_points=1000):
         """
         This initializes the graph widget for the three different processes.
         
@@ -1740,10 +1773,16 @@ class GraphGUI:
         self.ax.set_ylabel('Current (nA)')
        
         # Initializes graphical data
+        self.max_data_points = max_data_points
+        self.y_data = deque(maxlen=max_data_points)
+        self.x_data = deque(maxlen=max_data_points)
+        self.time_data = deque(maxlen=max_data_points)
+        '''
         self.y_data = []
         self.x_data = []
         # Use this to export data with milliseconds included
         self.time_data = []
+        '''
         self.line, = self.ax.plot([], [], 'r-')
 
         # Create a canvas to embed the figure in Tkinter
@@ -1817,6 +1856,11 @@ class GraphGUI:
             self.ax.autoscale_view()
             self.canvas.draw()
             self.canvas.flush_events()
+        
+        #self.y_data.clear()
+        #self.x_data.clear()
+        #self.time_data.clear()
+        
         '''
         if PERIODICS_FLAG:
             # Sample size can be set by the user, but default is 1024
