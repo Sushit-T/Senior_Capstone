@@ -34,9 +34,12 @@ TUNNELING_SAMPLE_SIZE   = 1
 TIP CONTROLLER GLOBAL VARIABLES
 """
 CONTROLLER_MIN_CURR                 = 0.1 #nA
-CONTROLLER_CONST_STEP_SZ_NM         = 0.1 #nm    
-CONTROLLER_DC_GAIN                  = 0.0001
-CONTROLLER_DEFAULT_SMPL_SZ          = 16
+CONTROLLER_CONST_STEP_SZ_NM         = 0.15 #nm    
+Kp                  = 0.005
+Kd                  = 0.0001
+Ki                  = 0.0001
+Ts                  = 0.16286
+CONTROLLER_DEFAULT_SMPL_SZ          = 8
 
 """
 CAP APPROACH GLOBAL VARIABLES

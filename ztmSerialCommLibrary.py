@@ -204,7 +204,7 @@ class usbMsgFunctions:
                 elif(rxMsg[2] == ztmSTATUS.STATUS_MEASUREMENTS.value):              
                     adcRx_nA    = round(struct.unpack('f', bytes(rxMsg[3:7]))[0], 4)                            # Unpack bytes & convert  
                     vBiasRx_V   = round(Convert.get_Vbias_float(struct.unpack('H',bytes(rxMsg[7:9]))[0]), 3)    # Unpack bytes & convert
-                    vPiezoRx_V  = round(Convert.get_Vpiezo_float(struct.unpack('H',bytes(rxMsg[9:11]))[0]), 3)  # Unpack bytes & convert
+                    vPiezoRx_V  = round(Convert.get_Vpiezo_float(struct.unpack('H',bytes(rxMsg[9:11]))[0]), 5)  # Unpack bytes & convert
                     return adcRx_nA, vBiasRx_V, vPiezoRx_V
                 else:
                     return False
