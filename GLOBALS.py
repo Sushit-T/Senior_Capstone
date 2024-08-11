@@ -21,22 +21,25 @@ STAT_BYTE    = 2    # STATUS -> 1 byte
 """
 TUNNELING APPROACH GLOBAL VARIABLES
 """
-VPIEZO_APPROACH_MAX     = 5.0       # maximum vpiezo value (v)
-VPIEZO_APPROACH_MIN     = 0.0       # minimum vpiezo value (v)
-PIEZO_EXTN_RATIO        = 20.0      # vpiezo extension ration (nm per volt)
-PIEZO_CODE_RATIO        = 6553.6    # vpiezo code ratio
-POS_TOLERANCE           = 0.1       # positional tolerance (nm)
-APPROACH_STEP_SIZE_NM   = 0.1       # tunneling approach step size (nm)
-#FREQ_RES                = 150.0     # frequency (hz)
-TUNNELING_SAMPLE_SIZE   = 4         # tunneling approach sample size
+VPIEZO_APPROACH_MAX     = 5.0
+VPIEZO_APPROACH_MIN     = 0.0
+PIEZO_EXTN_RATIO        = 20.0      # (nm per volt)
+PIEZO_CODE_RATIO        = 6553.6
+POS_TOLERANCE           = 0.1
+APPROACH_STEP_SIZE_NM   = 0.1       # nm
+FREQ_RES                = 150.0     # Hz
+TUNNELING_SAMPLE_SIZE   = 1
 
 """
-FEEDBACK CONTROLLER GLOBAL VARIABLES
+TIP CONTROLLER GLOBAL VARIABLES
 """
-CONTROLLER_MIN_CURR                 = 0.1       # minimum current (nA)
-CONTROLLER_CONST_STEP_SZ_NM         = 0.1       # constant step size (nm)    
-CONTROLLER_DC_GAIN                  = 0.0001    # DC gain
-CONTROLLER_DEFAULT_SMPL_SZ          = 16
+CONTROLLER_MIN_CURR                 = 0.1 #nA
+CONTROLLER_CONST_STEP_SZ_NM         = 0.15 #nm    
+Kp                  = 0.005
+Kd                  = 0.0001
+Ki                  = 0.0001
+Ts                  = 0.16286
+CONTROLLER_DEFAULT_SMPL_SZ          = 8
 
 """
 CAP APPROACH GLOBAL VARIABLES

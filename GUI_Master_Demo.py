@@ -410,10 +410,12 @@ class MeasGUI:
         global TUNN_APPR_FLAG
         global CAP_APPR_FLAG
         global PERIODICS_FLAG
+        global FEEDBACK_CTRL_FLAG
 
         TUNN_APPR_FLAG = 1
         CAP_APPR_FLAG = 0
         PERIODICS_FLAG = 0
+        FEEDBACK_CTRL_FLAG = 0
 
         self.start_reading()
 
@@ -424,11 +426,13 @@ class MeasGUI:
         global TUNN_APPR_FLAG
         global CAP_APPR_FLAG
         global PERIODICS_FLAG
+        global FEEDBACK_CTRL_FLAG
 
         TUNN_APPR_FLAG = 0
         CAP_APPR_FLAG = 1
         PERIODICS_FLAG = 0
-        
+        FEEDBACK_CTRL_FLAG = 0
+
         self.start_reading()
 
     def start_periodics(self):
@@ -438,13 +442,15 @@ class MeasGUI:
         global TUNN_APPR_FLAG
         global CAP_APPR_FLAG
         global PERIODICS_FLAG
+        global FEEDBACK_CTRL_FLAG
 
         TUNN_APPR_FLAG = 0
         CAP_APPR_FLAG = 0
         PERIODICS_FLAG = 1
+        FEEDBACK_CTRL_FLAG = 0
         
         self.start_reading()
-
+        
     def start_reading(self):
         """
         Initializes the data reading process when the start button is pressed.
@@ -647,6 +653,9 @@ class MeasGUI:
         This function looks for a desired tunneling current using the traditional algorithm.
         """
         global STOP_BTN_FLAG
+        global PERIODICS_FLAG
+        global CAP_APPR_FLAG
+        global TUNN_APPR_FLAG
         global TUNN_APPROACH_ESCAPE_FLG
         global FEEDBACK_CTRL_FLAG
         global curr_setpoint
@@ -667,24 +676,31 @@ class MeasGUI:
             if not self.saveSampleBias():
                 return
             
+            TUNN_APPR_FLAG = 1
+            CAP_APPR_FLAG = 0
+            PERIODICS_FLAG = 0
+            FEEDBACK_CTRL_FLAG = 0
+            
             # Set sample size to TUNNELING_SAMPLE_SIZE
             self.send_msg_retry(port, globals.MSG_B, ztmCMD.CMD_SET_ADC_SAMPLE_SIZE.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_DONE.value, globals.TUNNELING_SAMPLE_SIZE)
 
+            
             # Get a measurement from the MCU, send_msg_retry() will change the val of the global vars curr, vbias, vpzo
             success = self.send_msg_retry(port, globals.MSG_C, ztmCMD.CMD_REQ_DATA.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_MEASUREMENTS.value)
-            
+                       
             if success:
                 # Resets visual graph and data
                 self.parent.graph_gui.reset_graph()
                 
                 # Turns interactive graph on
-                plt.ion()
+                ### TURNED OFF FOR DEBUGGING
+                #plt.ion()
                 
                 self.startup_leds()
                 self.initializer.disable_widgets(self)
 
-                stepDownDelayCounter = 0
-                stepDownThreshold = 3
+                #stepDownDelayCounter = 0
+                #stepDownThreshold = 3
                 while True:
                     if STOP_BTN_FLAG == 1:
                         plt.ioff()
@@ -702,22 +718,22 @@ class MeasGUI:
                             if adjust_success:
                                 tunneling_steps -= globals.INC_EIGHT
                                 TUNN_APPROACH_ESCAPE_FLG = 1
-                                FEEDBACK_CTRL_FLAG = 1
+                                
                                 break
                                 #return 1, curr_data, vb_V, vp_V, tunneling_steps
                             else:
                                 messagebox.showerror("ERROR", "Error. Unable to adjust the stepper motor.")
                         else:       
                             # delay stepping down by stepDownThreshold samples                   
-                            if(stepDownDelayCounter == stepDownThreshold-1):
-                                vpiezo_tip, tunneling_steps = self.auto_move_tip(tunneling_steps, globals.APPROACH_STEP_SIZE_NM, globals.DIR_DOWN)
-                            stepDownDelayCounter = (stepDownDelayCounter + 1) % stepDownThreshold
+                            #if(stepDownDelayCounter == stepDownThreshold-1):
+                            vpiezo_tip, tunneling_steps = self.auto_move_tip(tunneling_steps, globals.APPROACH_STEP_SIZE_NM, globals.DIR_DOWN)
+                            #stepDownDelayCounter = (stepDownDelayCounter + 1) % stepDownThreshold
                         
                         self.update_label()
                         self.parent.graph_gui.update_graph('tunneling_approach')
                 STOP_BTN_FLAG = 0
                 plt.ioff()
-                messagebox.showinfo("TUNNELING APPROACH", "Success. The tunneling approach has ended. You can now enter the feedback controller.")
+                messagebox.showinfo("TUNNELING APPROACH", f"Success. The tunneling approach has ended. Received {curr_data} nA at Piezo Voltage of {vpiezo_tip} V. You can now enter the feedback controller.")
                 self.feedback_ctrl_btn.configure(state="normal")
                 self.stop_leds()
                 self.initializer.enable_widgets(self)
@@ -730,17 +746,16 @@ class MeasGUI:
 ############################################# END OF TIP APPROACH #################################################
 
 ############################################# FEEDBACK CONTROL #################################################
-    
-    def feedback_controller(self):
-        """
-        Starts the feedback controller separate thread to avoid freezing
-        the GUI.
-        """
-        self.feedback_ctrl_thread = threading.Thread(target=self._feedback_ctrl_impl)
-        self.feedback_ctrl_thread.start()
-    
+    #def feedback_controller(self):
+    #    """
+    #    Starts the feedback controller separate thread to avoid freezing
+    #    the GUI.
+    #    """
+    #    self.feedback_ctrl_thread = threading.Thread(target=self._feedback_ctrl_impl)
+    #    self.feedback_ctrl_thread.start()
+    #
         
-    def _feedback_ctrl_impl(self):
+    def feedback_controller(self):# _feedback_ctrl_impl(self):
         """
         This function uses feedback to hold a desired tunneling current.
 
@@ -762,9 +777,10 @@ class MeasGUI:
         else:
         ##########    
             TUNN_APPR_FLAG = 0
-            if FEEDBACK_CTRL_FLAG == 0:
-                messagebox.showerror("ERROR", "Error. Tunneling current has not been found yet.")
-                return 
+            FEEDBACK_CTRL_FLAG = 1
+            #if FEEDBACK_CTRL_FLAG == 0:
+            #    messagebox.showerror("ERROR", "Error. Tunneling current has not been found yet.")
+            #    return 
             
             port = self.parent.serial_ctrl.serial_port
             
@@ -785,7 +801,7 @@ class MeasGUI:
                 plt.ion()
                 self.startup_leds()
                 self.initializer.disable_widgets(self)
-                
+                last_error = curr_setpoint - curr_data
                 while True:
                     if STOP_BTN_FLAG == 1:
                         plt.ioff()
@@ -801,15 +817,18 @@ class MeasGUI:
                         # If no tunneling current is detected, step down with a constant step size
                         if(curr_data < globals.CONTROLLER_MIN_CURR):
                             vpiezo_tip, tunneling_steps = self.auto_move_tip(tunneling_steps, globals.CONTROLLER_CONST_STEP_SZ_NM, globals.DIR_DOWN)
-                        # Use feedback control to maintain targer current
+                        # Use feedback control to maintain target current
                         else:
                             error = curr_setpoint - curr_data
-                            dist = error * globals.CONTROLLER_DC_GAIN
-
+                            dist = error * globals.Kp + globals.Kd * (error - last_error) / globals.Ts
+                            last_error = error
+                            #print(f"Vpzo = {vpiezo_tip}, dist = {dist}, error = {error}, steps = {tunneling_steps}") ## DEBUG
                             if(dist < 0):
-                                vpiezo_tip, tunneling_steps = self.auto_move_tip(tunneling_steps, -dist, globals.DIR_UP)
+                                vpiezo_tip, tunneling_steps = self.auto_move_tip(tunneling_steps, -dist, globals.DIR_UP)               
+                                #time.sleep(0.005)
                             else:
                                 vpiezo_tip, tunneling_steps = self.auto_move_tip(tunneling_steps, dist, globals.DIR_DOWN)
+                                #time.sleep(0.005)
 
                         self.update_label()
                         self.parent.graph_gui.update_graph('feedback_control')
@@ -900,6 +919,7 @@ class MeasGUI:
                 vpiezo_tip = globals.VPIEZO_APPROACH_MAX
             while(piezoSet == False):
                 piezoSet = self.send_msg_retry(port, globals.MSG_A, ztmCMD.CMD_PIEZO_ADJ.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_DONE.value, 0, 0, vpiezo_tip)
+            piezoSet = False
         return vpiezo_tip
     
     def piezo_full_retract(self):
@@ -913,16 +933,19 @@ class MeasGUI:
 
         port = self.parent.serial_ctrl.serial_port
         piezoSet = False
+
         # Retract piezo in small increments
-        piezoStep = vpiezo_tip / 32
-        while (vpiezo_tip != globals.VPIEZO_APPROACH_MIN):
-            if vpiezo_tip > globals.VPIEZO_APPROACH_MIN:
-                vpiezo_tip -= piezoStep
-            elif vpiezo_tip < globals.VPIEZO_APPROACH_MIN:
+                                   
+        piezoStep = (vpiezo_tip - globals.VPIEZO_APPROACH_MIN)/ 32
+        while (vpiezo_tip > globals.VPIEZO_APPROACH_MIN):
+            vpiezo_tip -= piezoStep
+            if vpiezo_tip < globals.VPIEZO_APPROACH_MIN:
                 vpiezo_tip = globals.VPIEZO_APPROACH_MIN
             while(piezoSet == False):
                 piezoSet = self.send_msg_retry(port, globals.MSG_A, ztmCMD.CMD_PIEZO_ADJ.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_DONE.value, 0, 0, vpiezo_tip)
+            piezoSet = False
         return vpiezo_tip
+
 
 ############################################# CAPACITANCE APPROACH #################################################
     def cap_approach(self):
@@ -1142,7 +1165,20 @@ class MeasGUI:
             self.initializer.enable_widgets(self)
             STOP_BTN_FLAG = 0
 
-       
+    ############################################################################################################
+    ###################################### DELETE LATER, DON'T FORGET ##########################################
+    def saveKp(self, _=None):
+            self.root.focus()
+            globals.Kp = self.kp_frame.get()
+
+    def saveKd(self, _=None):
+            self.root.focus()
+            globals.Kd = self.kd_frame.get()
+
+    def saveKi(self, _=None):
+            self.root.focus()
+            globals.Ki = self.ki_frame.get()
+            
     def savePiezoValue(self, _=None):         
         """
         Method to save the piezo voltage delta value; the
@@ -1834,6 +1870,7 @@ class GraphGUI:
         global CAP_APPR_FLAG
         global TUNN_APPR_FLAG
         global TUNN_APPROACH_ESCAPE_FLG
+                                 
         
         rollover_time = globals.ROLLOVER_GRAPH_TIME
 
@@ -1879,10 +1916,10 @@ class GraphGUI:
                 self.avg_y = sum(self.y_data) / len(self.y_data) if len(self.y_data) > 0 else 0
                 # Create a constant y-value list with the average value
                 self.avg_y_data = [self.avg_y] * len(self.x_data)
-                self.line.set_data(self.x_data, self.avg_y_data)
+                self.line.set_data(self.x_data, self.avg_y_data)                                            
         
         elif CAP_APPR_FLAG:
-            update_interval = 10
+            update_interval = 10                    
         
         if len(self.y_data) % update_interval == 0:
             if not TUNN_APPR_FLAG:
