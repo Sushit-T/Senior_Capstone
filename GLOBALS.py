@@ -19,29 +19,30 @@ CMD_BYTE     = 1    # CMD    -> 1 byte
 STAT_BYTE    = 2    # STATUS -> 1 byte
 
 """
-TIP APPROACH GLOBAL VARIABLES
+TUNNELING APPROACH GLOBAL VARIABLES
 """
 VPIEZO_APPROACH_MAX     = 5.0
 VPIEZO_APPROACH_MIN     = 0.0
-PIEZO_EXTN_RATIO        = 20.0  # (nm per volt)
+PIEZO_EXTN_RATIO        = 20.0      # (nm per volt)
 PIEZO_CODE_RATIO        = 6553.6
 POS_TOLERANCE           = 0.1
-APPROACH_STEP_SIZE_NM   = 0.1 # nm
+APPROACH_STEP_SIZE_NM   = 0.1       # nm
 FREQ_RES                = 150.0     # Hz
-TUNNELING_SAMPLE_SIZE   = 24
+TUNNELING_SAMPLE_SIZE   = 1
 
 """
-TIP APPROACH GLOBAL VARIABLES
+TIP CONTROLLER GLOBAL VARIABLES
 """
 CONTROLLER_MIN_CURR                 = 0.1 #nA
 CONTROLLER_CONST_STEP_SZ_NM         = 0.1 #nm    
-CONTROLLER_DC_GAIN                  = 0.0001
+CONTROLLER_DC_GAIN                  = 0.000001
+CONTROLLER_DEFAULT_SMPL_SZ          = 16
 
 """
 CAP APPROACH GLOBAL VARIABLES
 """
-REGION_1_CAP            = 90.0 # fF
-STP_SZ_R1                = 10000.0 
+REGION_1_CAP            = 90.0  # fF
+STP_SZ_R1               = 10000.0 
 CAP_APPROACH_AMPL       = 1
 CAP_APPROACH_FREQ       = 1000
 DELAY_LINE_LEN          = 50

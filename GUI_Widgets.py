@@ -31,7 +31,7 @@ class HomepageWidgets:
         
         meas_gui.label_sample_rate.grid(column=1, row=1)
         meas_gui.sample_rate_menu.grid(column=2, row=1) 
-        meas_gui.frame8.grid(row=13, column=4, padx=5, pady=5, sticky="")
+        meas_gui.frame8.grid(row=12, column=4, padx=5, pady=5, sticky="")
         
         # Sample size user entry
         meas_gui.sample_size = Entry(meas_gui.frame8, width=13)
@@ -120,7 +120,7 @@ class HomepageWidgets:
         meas_gui.add_btn_image7 = ctk.CTkImage(Image.open("Images/Acquire_IZ.png"), size=(100,35))
         meas_gui.add_btn_image12 = ctk.CTkImage(Image.open("Images/Start_Cap_Approach.png"), size=(100,45))
         meas_gui.add_btn_image13 = ctk.CTkImage(Image.open("Images/Start_Periodic_Data.png"), size=(100,45))
-        
+        meas_gui.add_btn_image14 = ctk.CTkImage(Image.open("Images/Start_Feedback_Ctrl.png"), size=(100,45))
     
         meas_gui.add_btn_image8 = ctk.CTkImage(Image.open("Images/Stop_LED.png"), size=(35,35))
         meas_gui.add_btn_image9 = ctk.CTkImage(Image.open("Images/Start_LED.png"), size=(35,35))
@@ -128,11 +128,12 @@ class HomepageWidgets:
         meas_gui.add_btn_image10 = ctk.CTkImage(Image.open("Images/Save_Home_Btn.png"), size=(100,35))
         meas_gui.add_btn_image11 = ctk.CTkImage(Image.open("Images/Return_Home_Btn.png"), size=(35,35))
         
-        # create buttons with proper sizes															   
+        # start/stop widgets													   
         meas_gui.start_stop_frame = LabelFrame(meas_gui.root, text="Start/Stop Processes", labelanchor="n", padx=10, pady=10, bg="#eeeeee")
         meas_gui.tip_approach_btn = ctk.CTkButton(meas_gui.start_stop_frame, image=meas_gui.add_btn_image4, text="", width=100, height=35, fg_color="#eeeeee", bg_color="#eeeeee", corner_radius=0, command=meas_gui.start_tip_appr)
         meas_gui.cap_approach_btn = ctk.CTkButton(meas_gui.start_stop_frame, image=meas_gui.add_btn_image12, text="", width=100, height=45, fg_color="#eeeeee", bg_color="#eeeeee", corner_radius=0, command=meas_gui.start_cap_appr)
         meas_gui.enable_periodics_btn = ctk.CTkButton(meas_gui.start_stop_frame, image = meas_gui.add_btn_image13, text="", width=100, height=45, fg_color="#eeeeee", bg_color="#eeeeee", corner_radius=0, command=meas_gui.start_periodics)
+        meas_gui.feedback_ctrl_btn = ctk.CTkButton(meas_gui.start_stop_frame, image = meas_gui.add_btn_image14, text="", width=100, height=45, fg_color="#eeeeee", bg_color="#eeeeee", corner_radius=0, command=meas_gui.feedback_controller)
         meas_gui.stop_btn = ctk.CTkButton(meas_gui.start_stop_frame, image=meas_gui.add_btn_image5, text="", width=90, height=35, fg_color="#eeeeee", bg_color="#eeeeee", corner_radius=0, command=meas_gui.stop_reading)
         meas_gui.stop_led_btn = ctk.CTkLabel(meas_gui.start_stop_frame, image=meas_gui.add_btn_image8, text="", width=35, height=35, fg_color="#eeeeee", bg_color="#eeeeee", corner_radius=0)
         meas_gui.start_led_btn = ctk.CTkLabel(meas_gui.start_stop_frame, image=meas_gui.add_btn_image9, text="", width=30, height=35, fg_color="#eeeeee", bg_color="#eeeeee", corner_radius=0)
@@ -168,35 +169,35 @@ class HomepageWidgets:
         Method to publish widgets in the MeasGUI class.
         """
         # positioning distance text box
-        meas_gui.frame1.grid(row=11, column=4, padx=5, pady=5, sticky="sw")
+        meas_gui.frame1.grid(row=10, column=4, padx=5, pady=5, sticky="nw")
         meas_gui.label1.grid(row=0, column=0, padx=5, pady=5)
 
         # positioning current text box
-        meas_gui.frame2.grid(row=11, column=5, padx=5, pady=5, sticky="sw")
+        meas_gui.frame2.grid(row=10, column=5, padx=5, pady=5, sticky="nw")
         meas_gui.label2.grid(row=0, column=1, padx=5, pady=5)   
         
         # positioning current setpoint text box
-        meas_gui.frame3.grid(row=12, column=4, padx=5, pady=5, sticky="w")
+        meas_gui.frame3.grid(row=11, column=4, padx=5, pady=5, sticky="w")
         meas_gui.label3.grid(row=1, column=0, padx=5, pady=5) 
         
         # positioning current offset text box
-        meas_gui.frame4.grid(row=12, column=5, padx=5, pady=5, sticky="w")
+        meas_gui.frame4.grid(row=11, column=5, padx=5, pady=5, sticky="w")
         meas_gui.label4.grid(row=1, column=1, padx=5, pady=5) 
 
         # positioning sample bias text box
-        meas_gui.frame6.grid(row=13, column=5, padx=5, pady=5, sticky="nw")
+        meas_gui.frame6.grid(row=12, column=5, padx=5, pady=5, sticky="nw")
         meas_gui.label6.grid(row=2, column=0, padx=5, pady=5) 
 
         # positioning the notes text box
-        meas_gui.frame7.grid(row=11, column=7, rowspan=3, pady=5, sticky="n")
+        meas_gui.frame7.grid(row=10, column=7, rowspan=3, pady=5, sticky="n")
         meas_gui.label7.grid(row=1, column=0, pady=5, columnspan=3, rowspan=3) 
         meas_gui.label8.grid(row=0, column=2, pady=5, sticky="e")
         meas_gui.label9.grid(row=0, column=2, pady=5, sticky="w")
 
         # vpiezo tip fine adjust
-        meas_gui.vpiezo_btn_frame.grid(row=8, column=0, rowspan=3, columnspan=2, padx=5, sticky="e")
-        meas_gui.vpiezo_adjust_btn_up.grid(row=0, column=0)
-        meas_gui.vpiezo_adjust_btn_down.grid(row=1, column=0)
+        meas_gui.vpiezo_btn_frame.grid(row=7, column=0, rowspan=3, columnspan=2, padx=5, sticky="e")
+        meas_gui.vpiezo_adjust_btn_up.grid(row=0, column=0, sticky="e")
+        meas_gui.vpiezo_adjust_btn_down.grid(row=1, column=0, sticky="e")
         
         # stepper motor adjust
         meas_gui.fine_adjust_frame.grid(row=11, column=0, rowspan=4, columnspan=2, padx=5, sticky="e")
@@ -206,9 +207,9 @@ class HomepageWidgets:
         # start/stop buttons
         meas_gui.start_stop_frame.grid(row=0, column=9, columnspan=4, rowspan=4)
         meas_gui.tip_approach_btn.grid(row=0, column=0, sticky="e")
-        meas_gui.cap_approach_btn.grid(row=1, column=0, sticky="e")
-
-        meas_gui.enable_periodics_btn.grid(row=2, column=0, sticky="e")
+        meas_gui.cap_approach_btn.grid(row=2, column=0, sticky="e")
+        meas_gui.feedback_ctrl_btn.grid(row=1, column=0, sticky="e")
+        meas_gui.enable_periodics_btn.grid(row=3, column=0, sticky="e")
         meas_gui.stop_btn.grid(row=1, column=1, sticky="ne", padx=20, pady=10)
         # led
         meas_gui.stop_led_btn.grid(row=0, column=1, sticky="")
@@ -222,7 +223,7 @@ class HomepageWidgets:
         meas_gui.save_home_pos.grid(row=8, column=9, padx=10, sticky="w")
         
         # reset home position
-        meas_gui.return_to_home_frame.grid(row=9, column=9, sticky="w", padx=20)
+        meas_gui.return_to_home_frame.grid(row=10, column=9, sticky="w", padx=20)
         meas_gui.return_to_home_pos.grid(row=0, column=0, padx=18)
         
     def disable_widgets(self, meas_gui):
@@ -243,7 +244,7 @@ class HomepageWidgets:
         '''
         meas_gui.label3.configure(state="disabled")
         meas_gui.sample_rate_menu.configure(state="disabled")
-        meas_gui.coarse_adjust_menu.configure(state="disabled")
+        #meas_gui.coarse_adjust_menu.configure(state="disabled")
         meas_gui.sample_size.configure(state="disabled")
         meas_gui.acquire_iv_btn.configure(state="disabled")
         meas_gui.acquire_iz_btn.configure(state="disabled")
@@ -252,12 +253,13 @@ class HomepageWidgets:
         meas_gui.tip_approach_btn.configure(state="disabled")
         meas_gui.cap_approach_btn.configure(state="disabled")
         meas_gui.enable_periodics_btn.configure(state="disabled")
+        meas_gui.feedback_ctrl_btn.configure(state="disabled")
         meas_gui.stop_btn.configure(state="normal")
     
     def enable_widgets(self, meas_gui):
         meas_gui.label3.configure(state="normal")
         meas_gui.sample_rate_menu.configure(state="normal")
-        meas_gui.coarse_adjust_menu.configure(state="normal")
+        #meas_gui.coarse_adjust_menu.configure(state="normal")
         meas_gui.sample_size.configure(state="normal")
         meas_gui.acquire_iv_btn.configure(state="normal")
         meas_gui.acquire_iz_btn.configure(state="normal")
@@ -266,4 +268,5 @@ class HomepageWidgets:
         meas_gui.tip_approach_btn.configure(state="normal")
         meas_gui.cap_approach_btn.configure(state="normal")
         meas_gui.enable_periodics_btn.configure(state="normal")
+        meas_gui.feedback_ctrl_btn.configure(state="normal")
         meas_gui.stop_btn.configure(state="disable")
