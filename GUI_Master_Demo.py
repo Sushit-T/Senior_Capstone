@@ -778,6 +778,7 @@ class MeasGUI:
         ##########    
             TUNN_APPR_FLAG = 0
             FEEDBACK_CTRL_FLAG = 1
+            sum = 0
             #if FEEDBACK_CTRL_FLAG == 0:
             #    messagebox.showerror("ERROR", "Error. Tunneling current has not been found yet.")
             #    return 
@@ -817,10 +818,12 @@ class MeasGUI:
                         # If no tunneling current is detected, step down with a constant step size
                         if(curr_data < globals.CONTROLLER_MIN_CURR):
                             vpiezo_tip, tunneling_steps = self.auto_move_tip(tunneling_steps, globals.CONTROLLER_CONST_STEP_SZ_NM, globals.DIR_DOWN)
+                            sum = 0
                         # Use feedback control to maintain target current
                         else:
                             error = curr_setpoint - curr_data
-                            dist = error * globals.Kp + globals.Kd * (error - last_error) / globals.Ts
+                            sum += error * globals.Ts
+                            dist = error * globals.Kp + globals.Ki * sum + (globals.Kd * (error - last_error) / globals.Ts)
                             last_error = error
                             #print(f"Vpzo = {vpiezo_tip}, dist = {dist}, error = {error}, steps = {tunneling_steps}") ## DEBUG
                             if(dist < 0):
