@@ -1900,7 +1900,7 @@ class GraphGUI:
         self.ax.xaxis.set_major_locator(mdates.SecondLocator(interval=2))
         # Controls how much time is shown within the graph, currently displays the most recent 10 seconds
         self.ax.set_xlim(datetime.datetime.now() - datetime.timedelta(seconds=rollover_time), datetime.datetime.now())
-
+        
         # Local variables - calculate update interval based on sample size
         A = 400    # Scaling factor    # mess with this a bit more
         k = 0.005   # Decay rate
@@ -1928,10 +1928,35 @@ class GraphGUI:
         
         elif CAP_APPR_FLAG:
             update_interval = 10                    
-        
+
+        # Define the time interval for scaling (e.g., last 30 seconds)
+        time_interval = datetime.timedelta(seconds=30)
+        min_time = datetime.datetime.now() - time_interval
+            
         if len(self.y_data) % update_interval == 0:
             if not TUNN_APPR_FLAG:
                 self.line.set_data(self.x_data, self.y_data)
+                filtered_y_data = [y for x, y in zip(self.x_data, self.y_data) if x >= min_time]
+            else:
+                filtered_y_data = [y for x, y in zip(self.x_data, self.avg_y_data) if x >= min_time]
+
+            # Calculate the min and max y-values in the filtered data
+            if filtered_y_data:
+                min_y = min(filtered_y_data)
+                max_y = max(filtered_y_data)
+            else:
+                min_y = min(self.y_data)
+                max_y = max(self.y_data)
+            
+            # Avoid singular transformation
+            if min_y == max_y:
+                min_y -= 1.0  # or a small value like 0.1
+                max_y += 1.0  # or a small value like 0.1
+            
+            # Apply a buffer to prevent the graph from being too tightly zoomed
+            y_buffer = (max_y - min_y) * 0.1
+            self.ax.set_ylim(min_y - y_buffer, max_y + y_buffer)
+            
             self.ax.relim()
             self.ax.autoscale_view()
             self.canvas.draw()
