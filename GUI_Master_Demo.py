@@ -730,7 +730,7 @@ class MeasGUI:
                             #stepDownDelayCounter = (stepDownDelayCounter + 1) % stepDownThreshold
                         
                         self.update_label()
-                        self.parent.graph_gui.update_graph()
+                        self.parent.graph_gui.update_graph('tunneling_approach')
                 STOP_BTN_FLAG = 0
                 plt.ioff()
                 messagebox.showinfo("TUNNELING APPROACH", f"Success. The tunneling approach has ended. Received {curr_data} nA at Piezo Voltage of {vpiezo_tip} V. You can now enter the feedback controller.")
@@ -832,7 +832,7 @@ class MeasGUI:
                                 #time.sleep(0.005)
 
                         self.update_label()
-                        self.parent.graph_gui.update_graph()
+                        self.parent.graph_gui.update_graph('feedback_control')
             else:
                 messagebox.showerror("ERROR", "Error. Did not receive correct response back.")
                 # Turns interactive graph off
@@ -1057,7 +1057,7 @@ class MeasGUI:
                         self.send_msg_retry(port, globals.MSG_D, ztmCMD.CMD_STEPPER_ADJ.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_DONE.value, globals.EIGHTH_STEP, globals.DIR_DOWN, globals.CAP_APPROACH_NUM_STEPS)
 
                     self.update_label()
-                    self.parent.graph_gui.update_graph()
+                    self.parent.graph_gui.update_graph('cap_approach')
 
                 # Process when the capacitance approach is complete
                 STOP_BTN_FLAG = 0   
@@ -1155,7 +1155,7 @@ class MeasGUI:
                             vp_V = round(Convert.get_Vpiezo_float(struct.unpack('H',bytes(response[9:11]))[0]), 3) 
                             #print(f"Vpiezo: {vp_V}") 
                     self.update_label()
-                    self.parent.graph_gui.update_graph() 
+                    self.parent.graph_gui.update_graph('enable_periodics') 
             else:
                 messagebox.showerror("ERROR.", "Failed to enable periodic data. Try again.")
             # Turns interactive graph off
@@ -1755,10 +1755,15 @@ class MeasGUI:
                 header_text = self.save_notes()
                 header_date = self.save_date()
 
+                # Get the last 1000 data points from deque buffers
+                #num_points_to_export = 1000
+                recent_times = list(self.parent.graph_gui.time_data) #[-num_points_to_export:]
+                recent_currents = list(self.parent.graph_gui.y_data) #[-num_points_to_export:]
+
                 # Conjoining and formatting data
-                headers = ["Time", "Tunneling Current (nA)"]
+                headers = ["Time", "Current (nA)"]
                 data_to_export = [headers]
-                data_to_export.extend(zip(self.parent.graph_gui.time_data, self.parent.graph_gui.y_data))
+                data_to_export.extend(zip(recent_times, recent_currents))
 
                 # Writing to file being created
                 writer = csv.writer(file)
@@ -1778,7 +1783,7 @@ class GraphGUI:
     """
     Function to initialize the data arrays and the graphical display.
     """
-    def __init__(self, root, meas_gui, max_data_points=1000):
+    def __init__(self, root, meas_gui, max_data_points=65535):
         """
         This initializes the graph widget for the three different processes.
         
@@ -1789,6 +1794,16 @@ class GraphGUI:
         self.root = root
         self.meas_gui = meas_gui
 
+        # Initialize cache file paths for different processes
+        self.cache_files = {
+            'tunneling_approach': "tunneling_approach_cache.csv",
+            'cap_approach': "cap_approach_cache.csv",
+            'enable_periodics': "enable_periodics_cache.csv",
+            'feedback_control': "feedback_control_cache.csv"
+        }
+        
+        self.init_cache_file()
+        
         # Configures plot
         self.fig, self.ax = plt.subplots()
         self.ax.set_xlabel('Time (s)')
@@ -1799,20 +1814,37 @@ class GraphGUI:
         self.y_data = deque(maxlen=max_data_points)
         self.x_data = deque(maxlen=max_data_points)
         self.time_data = deque(maxlen=max_data_points)
-        '''
-        self.y_data = []
-        self.x_data = []
-        # Use this to export data with milliseconds included
-        self.time_data = []
-        '''
         self.line, = self.ax.plot([], [], 'r-')
 
         # Create a canvas to embed the figure in Tkinter
         self.canvas = FigureCanvasTkAgg(self.fig, master=self.root)
         self.canvas.get_tk_widget().grid(row=0, column=3, columnspan=6, rowspan=10, padx=10, pady=5, sticky="n")
         
-    
-    def update_graph(self):
+    def init_cache_file(self):
+        """
+        Initializes the cache file for storing discarded graph data.
+        """
+        headers = ["Time (s)", "Current (nA)"]
+        for _, path in self.cache_files.items():
+            with open(path, 'w', newline='') as file:
+                writer = csv.writer(file)
+                writer.writerow(headers)
+                
+    def write_to_cache(self, process, x_values, y_values):
+        """
+        Writes a single data point to the cache file.
+
+        Args:
+            x_values (_type_): _description_
+            y_values (_type_): _description_
+        """
+        cache_file = self.cache_files.get(process)
+        if cache_file:
+            with open(cache_file, 'a', newline='') as file:
+                writer = csv.writer(file)
+                writer.writerow([x_values, y_values])
+            
+    def update_graph(self, process):
         """
         This will update the visual graph with the data points obtained during
         the Piezo Voltage Sweep. The data points are appended to the data arrays.
@@ -1837,6 +1869,9 @@ class GraphGUI:
         # Append time to include milliseconds for exported data
         formatted_time = time_now.strftime('%H:%M:%S.%f')[:-3]
         self.time_data.append(formatted_time)
+        
+        # Write every data point to the cache file for the specified process
+        self.write_to_cache(process, formatted_time, curr_data)
 
         # Set x-axis parameters
         self.ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M:%S'))
@@ -1845,7 +1880,7 @@ class GraphGUI:
         self.ax.set_xlim(datetime.datetime.now() - datetime.timedelta(seconds=rollover_time), datetime.datetime.now())
 
         # Local variables - calculate update interval based on sample size
-        A = 900    # Scaling factor    # mess with this a bit more
+        A = 400    # Scaling factor    # mess with this a bit more
         k = 0.005   # Decay rate
         B = update_interval = 10     # Minimum interval and default value
         
@@ -1883,93 +1918,6 @@ class GraphGUI:
             self.canvas.draw()
             self.canvas.flush_events()
         
-        #self.y_data.clear()
-        #self.x_data.clear()
-        #self.time_data.clear()
-        
-        '''
-        if PERIODICS_FLAG:
-            # Sample size can be set by the user, but default is 1024
-            if sample_size_save == None:
-                if len(self.y_data) % B == 0:  # Updates every 10 data points
-                    self.line.set_data(self.x_data, self.y_data)
-                    self.ax.relim()
-                    self.ax.autoscale_view()
-                    self.canvas.draw()
-                    self.canvas.flush_events()
-            else:
-                # Calculate update interval using exponential decay
-                update_interval = int(A* math.exp(-k * sample_size_save) + B)
-                # Ensure interval doesn't fall below minimum value
-                update_interval = max(update_interval, B)
-                
-                if len(self.y_data) % update_interval == 0: 
-                    self.line.set_data(self.x_data, self.y_data)
-                    self.ax.relim()
-                    self.ax.autoscale_view()
-                    self.canvas.draw()
-                    self.canvas.flush_events()
-        
-            
-        elif TUNN_APPR_FLAG:
-            # Sample size is set to 24
-            lenY = len(self.y_data)
-            lenX = len(self.x_data)
-
-            if lenY % 512 == 0: 
-                # Calculate the average of y_data
-                #self.avg_y = sum(self.y_data) / lenY if lenY > 0 else 0
-                # Create a constant y-value list with the average value
-                #self.avg_y_data = [self.avg_y] * lenX
-                #self.line.set_data(self.x_data, self.avg_y_data)
-                self.line.set_data(self.x_data,self.y_data)
-                self.ax.relim()
-                self.ax.autoscale_view()
-                self.canvas.draw()
-                self.canvas.flush_events()
-                TUNN_APPROACH_ESCAPE_FLG = 0
-            
-        """  
-        elif TUNN_APPR_FLAG:
-            # Sample size is set to 24
-            if len(self.y_data) % 1024 == 0:
-                #avg_meas = MeasGUI.get_avg_meas(MeasGUI, self.y_data) 
-                #self.ax.plot(time_now, avg_meas, 'ro')
-                #self.ax.plot(time_now, self.y_data[1023], 'ro')
-                abcd = 1
-                #self.line.set_data(self.x_data, self.y_data)
-                #self.ax.relim()
-                #self.ax.autoscale_view()
-                #self.canvas.draw()
-                #self.canvas.flush_events()
-            elif(TUNN_APPROACH_ESCAPE_FLG):
-                self.line.set_data(self.x_data, self.y_data)
-                self.ax.relim()
-                self.ax.autoscale_view()
-                self.canvas.draw()
-                self.canvas.flush_events()
-                TUNN_APPROACH_ESCAPE_FLG = 0
-        """
-        
-        elif CAP_APPR_FLAG:
-            # FFT data sets sample size to 1024
-            if len(self.y_data) % 10 == 0: 
-                self.line.set_data(self.x_data, self.y_data)
-                self.ax.relim()
-                self.ax.autoscale_view()
-                self.canvas.draw()
-                self.canvas.flush_events()
-        
-        # Feedback control
-        else:
-            if len(self.y_data) % 10 == 0: 
-                self.line.set_data(self.x_data, self.y_data)
-                self.ax.relim()
-                self.ax.autoscale_view()
-                self.canvas.draw()
-                self.canvas.flush_events()
-        '''
-        
     def reset_graph(self):
         """
         Resets the visual graph and clears the data points.
@@ -1977,9 +1925,9 @@ class GraphGUI:
         self.ax.clear()
         self.ax.set_xlabel('Time (s)')
         self.ax.set_ylabel('Current (nA)')
-        self.y_data = []
-        self.x_data = []
-        self.time_data = []
+        self.y_data = deque(maxlen=self.max_data_points)
+        self.x_data = deque(maxlen=self.max_data_points)
+        self.time_data = deque(maxlen=self.max_data_points)
         self.line, = self.ax.plot([], [], 'r-')
         self.canvas.draw()
         self.canvas.flush_events()
