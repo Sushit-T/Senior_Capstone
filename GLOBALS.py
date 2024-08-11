@@ -35,7 +35,9 @@ TIP CONTROLLER GLOBAL VARIABLES
 """
 CONTROLLER_MIN_CURR                 = 0.1 #nA
 CONTROLLER_CONST_STEP_SZ_NM         = 0.15 #nm    
-CONTROLLER_DC_GAIN                  = 0.0005
+Kp                  = 0.0005
+Kd                  = 0.0001
+Ts                  = 0.16286
 CONTROLLER_DEFAULT_SMPL_SZ          = 8
 
 """

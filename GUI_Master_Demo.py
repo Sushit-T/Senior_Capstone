@@ -410,10 +410,12 @@ class MeasGUI:
         global TUNN_APPR_FLAG
         global CAP_APPR_FLAG
         global PERIODICS_FLAG
+        global FEEDBACK_CTRL_FLAG
 
         TUNN_APPR_FLAG = 1
         CAP_APPR_FLAG = 0
         PERIODICS_FLAG = 0
+        FEEDBACK_CTRL_FLAG = 0
 
         self.start_reading()
 
@@ -424,11 +426,13 @@ class MeasGUI:
         global TUNN_APPR_FLAG
         global CAP_APPR_FLAG
         global PERIODICS_FLAG
+        global FEEDBACK_CTRL_FLAG
 
         TUNN_APPR_FLAG = 0
         CAP_APPR_FLAG = 1
         PERIODICS_FLAG = 0
-        
+        FEEDBACK_CTRL_FLAG = 0
+
         self.start_reading()
 
     def start_periodics(self):
@@ -438,10 +442,12 @@ class MeasGUI:
         global TUNN_APPR_FLAG
         global CAP_APPR_FLAG
         global PERIODICS_FLAG
+        global FEEDBACK_CTRL_FLAG
 
         TUNN_APPR_FLAG = 0
         CAP_APPR_FLAG = 0
         PERIODICS_FLAG = 1
+        FEEDBACK_CTRL_FLAG = 0
         
         self.start_reading()
 
@@ -647,6 +653,9 @@ class MeasGUI:
         This function looks for a desired tunneling current using the traditional algorithm.
         """
         global STOP_BTN_FLAG
+        global PERIODICS_FLAG
+        global CAP_APPR_FLAG
+        global TUNN_APPR_FLAG
         global TUNN_APPROACH_ESCAPE_FLG
         global FEEDBACK_CTRL_FLAG
         global curr_setpoint
@@ -666,6 +675,11 @@ class MeasGUI:
                 return 
             if not self.saveSampleBias():
                 return
+            
+            TUNN_APPR_FLAG = 1
+            CAP_APPR_FLAG = 0
+            PERIODICS_FLAG = 0
+            FEEDBACK_CTRL_FLAG = 0
             
             # Set sample size to TUNNELING_SAMPLE_SIZE
             self.send_msg_retry(port, globals.MSG_B, ztmCMD.CMD_SET_ADC_SAMPLE_SIZE.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_DONE.value, globals.TUNNELING_SAMPLE_SIZE)
@@ -788,7 +802,7 @@ class MeasGUI:
                 plt.ion()
                 self.startup_leds()
                 self.initializer.disable_widgets(self)
-                
+                last_error = curr_setpoint - curr_data
                 while True:
                     if STOP_BTN_FLAG == 1:
                         plt.ioff()
@@ -807,7 +821,8 @@ class MeasGUI:
                         # Use feedback control to maintain target current
                         else:
                             error = curr_setpoint - curr_data
-                            dist = error * globals.CONTROLLER_DC_GAIN
+                            dist = error * globals.Kp + globals.Kd * (error - last_error) / globals.Ts
+                            last_error = error
                             #print(f"Vpzo = {vpiezo_tip}, dist = {dist}, error = {error}, steps = {tunneling_steps}") ## DEBUG
                             if(dist < 0):
                                 vpiezo_tip, tunneling_steps = self.auto_move_tip(tunneling_steps, -dist, globals.DIR_UP)               
