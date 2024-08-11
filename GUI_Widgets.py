@@ -65,13 +65,17 @@ class HomepageWidgets:
         meas_gui.frame10.grid(row=7, column=2, rowspan=4, columnspan=2, padx=5, pady=5, sticky="")
         
         ### ADJUST LATER
+        
         meas_gui.label_vpeizo_delta_distance = Label(meas_gui.frame10, text="Approx. Dist", bg="#d0cee2", width=9, anchor="w")
         meas_gui.label_vpeizo_delta_distance.grid(column=2, row=1)
+        
+
         meas_gui.label10 = Entry(meas_gui.frame10, bg="white", width=10)
         meas_gui.label10.bind("<Return>", meas_gui.savePiezoValue)
         meas_gui.label11 = Label(meas_gui.frame10, bg="white", width=10)
         meas_gui.label10.grid(column=1, row=2, padx=5)
         meas_gui.label11.grid(column=2, row=2, padx=5)
+        meas_gui.label11.bind("<Return>", meas_gui.updateVpzoDistance)
         meas_gui.label_vpeizo_total = Label(meas_gui.frame10, text="Total Voltage", bg="#d0cee2", width=10, anchor="w")
         meas_gui.label_vpeizo_total.grid(column=1, row=3, columnspan=2)
         meas_gui.label12 = Label(meas_gui.frame10, bg="white", width=10)
@@ -80,7 +84,7 @@ class HomepageWidgets:
         # distance  ### ADJUST LATER
         meas_gui.frame1 = LabelFrame(meas_gui.root, text="Distance (nm)", padx=10, pady=2, bg="gray", width=20)
         meas_gui.label1 = Label(meas_gui.frame1, bg="white", width=20)
-        
+       
         # current
         meas_gui.frame2 = LabelFrame(meas_gui.root, text="Current (nA)", padx=10, pady=2, bg="gray")
         meas_gui.label2 = Label(meas_gui.frame2, bg="white", width=20)
@@ -158,11 +162,18 @@ class HomepageWidgets:
         meas_gui.fine_adjust_btn_up = ctk.CTkButton(master=meas_gui.fine_adjust_frame, image=meas_gui.add_btn_image2, text = "", width=40, height=40, compound="bottom", fg_color="#eeeeee", bg_color="#eeeeee", corner_radius=0, command=meas_gui.stepper_motor_up)
         meas_gui.fine_adjust_btn_down = ctk.CTkButton(master=meas_gui.fine_adjust_frame, image=meas_gui.add_btn_image3, text="", width=40, height=40, compound="bottom", fg_color="#eeeeee", bg_color="#eeeeee", corner_radius=0, command=meas_gui.stepper_motor_down)
 
-        # setup the drop option menu
-        #meas_gui.DropDownMenu()
-        
-        # put on the grid all the elements
-        #meas_gui.publish()
+        # Tip controller - DELETE LATER
+        meas_gui.kp_frame = LabelFrame(meas_gui.root, text="Kp", padx=10, pady=2, bg="#ADD8E6")
+        meas_gui.kp_label = Entry(meas_gui.kp_frame, bg="white", width=24)
+        meas_gui.kp_label.bind("<Return>", meas_gui.saveKp)
+
+        meas_gui.kd_frame = LabelFrame(meas_gui.root, text="Kd", padx=10, pady=2, bg="#ADD8E6")
+        meas_gui.kd_label = Entry(meas_gui.kd_frame, bg="white", width=24)
+        meas_gui.kd_label.bind("<Return>", meas_gui.saveKd)
+
+        meas_gui.ki_frame = LabelFrame(meas_gui.root, text="Ki", padx=10, pady=2, bg="#ADD8E6")
+        meas_gui.ki_label = Entry(meas_gui.ki_frame, bg="white", width=24)
+        meas_gui.ki_label.bind("<Return>", meas_gui.saveKi)
 
     def publish(self, meas_gui):
         """
@@ -225,6 +236,16 @@ class HomepageWidgets:
         # reset home position
         meas_gui.return_to_home_frame.grid(row=10, column=9, sticky="w", padx=20)
         meas_gui.return_to_home_pos.grid(row=0, column=0, padx=18)
+        
+        # tip controller - delete later
+        meas_gui.kp_frame.grid(row=4, column=2)
+        meas_gui.kp_label.grid(row=0, column=0)
+        
+        meas_gui.kd_frame.grid(row=5, column=2)
+        meas_gui.kd_label.grid(row=0, column=0)
+        
+        meas_gui.ki_frame.grid(row=6, column=2)
+        meas_gui.ki_label.grid(row=0, column=0)
         
     def disable_widgets(self, meas_gui):
         '''
