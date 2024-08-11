@@ -65,13 +65,17 @@ class HomepageWidgets:
         meas_gui.frame10.grid(row=7, column=2, rowspan=4, columnspan=2, padx=5, pady=5, sticky="")
         
         ### ADJUST LATER
+        
         meas_gui.label_vpeizo_delta_distance = Label(meas_gui.frame10, text="Approx. Dist", bg="#d0cee2", width=9, anchor="w")
         meas_gui.label_vpeizo_delta_distance.grid(column=2, row=1)
+        
+
         meas_gui.label10 = Entry(meas_gui.frame10, bg="white", width=10)
         meas_gui.label10.bind("<Return>", meas_gui.savePiezoValue)
         meas_gui.label11 = Label(meas_gui.frame10, bg="white", width=10)
         meas_gui.label10.grid(column=1, row=2, padx=5)
         meas_gui.label11.grid(column=2, row=2, padx=5)
+        meas_gui.label11.bind("<Return>", meas_gui.updateVpzoDistance)
         meas_gui.label_vpeizo_total = Label(meas_gui.frame10, text="Total Voltage", bg="#d0cee2", width=10, anchor="w")
         meas_gui.label_vpeizo_total.grid(column=1, row=3, columnspan=2)
         meas_gui.label12 = Label(meas_gui.frame10, bg="white", width=10)
@@ -80,7 +84,7 @@ class HomepageWidgets:
         # distance  ### ADJUST LATER
         meas_gui.frame1 = LabelFrame(meas_gui.root, text="Distance (nm)", padx=10, pady=2, bg="gray", width=20)
         meas_gui.label1 = Label(meas_gui.frame1, bg="white", width=20)
-        
+       
         # current
         meas_gui.frame2 = LabelFrame(meas_gui.root, text="Current (nA)", padx=10, pady=2, bg="gray")
         meas_gui.label2 = Label(meas_gui.frame2, bg="white", width=20)

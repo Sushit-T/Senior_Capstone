@@ -1187,7 +1187,15 @@ class MeasGUI:
             self.label12.configure(text=f"{0:.3f} ")
             self.label10.delete(0, END)
             self.label10.insert(0, str(vpzo_value))
-        
+
+        self.updateVpzoDistance(vpzo_value)
+
+
+    def updateVpzoDistance(self, delta):
+            
+            vpzo_dist = delta * globals.PIEZO_EXTN_RATIO
+            self.label11.configure(text=f"{vpzo_dist:.3f}")
+
     def piezo_inc(self):
         """
         Method to identify that the up arrow was pressed for Vpzo.

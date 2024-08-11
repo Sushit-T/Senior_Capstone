@@ -100,10 +100,10 @@ QUARTER_STEP    = 0x02
 EIGHTH_STEP     = 0x03
 
 # The distance in nanometers of the step sizes
-FULL_STEP_DISTANCE      = 0.008
-HALF_STEP_DISTANCE      = 0.004
-QUARTER_STEP_DISTANCE   = 0.002
-EIGHTH_STEP_DISTANCE    = 0.001
+FULL_STEP_DISTANCE      = 400
+HALF_STEP_DISTANCE      = 200
+QUARTER_STEP_DISTANCE   = 100
+EIGHTH_STEP_DISTANCE    = 50
 
 # Amount to increase the step size by
 INC_FULL  = 1
