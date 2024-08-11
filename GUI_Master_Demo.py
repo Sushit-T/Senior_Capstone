@@ -655,7 +655,6 @@ class MeasGUI:
         global curr_data
         global vb_V
         global vp_V
-        global TUNN_APPROACH_ESCAPE_FLG
         
         if self.check_connection():
             return
@@ -669,9 +668,10 @@ class MeasGUI:
             # Set sample size to TUNNELING_SAMPLE_SIZE
             self.send_msg_retry(port, globals.MSG_B, ztmCMD.CMD_SET_ADC_SAMPLE_SIZE.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_DONE.value, globals.TUNNELING_SAMPLE_SIZE)
 
+            
             # Get a measurement from the MCU, send_msg_retry() will change the val of the global vars curr, vbias, vpzo
             success = self.send_msg_retry(port, globals.MSG_C, ztmCMD.CMD_REQ_DATA.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_MEASUREMENTS.value)
-            
+                       
             if success:
                 # Resets visual graph and data
                 self.parent.graph_gui.reset_graph()
@@ -702,7 +702,7 @@ class MeasGUI:
                             if adjust_success:
                                 tunneling_steps -= globals.INC_EIGHT
                                 TUNN_APPROACH_ESCAPE_FLG = 1
-                                FEEDBACK_CTRL_FLAG = 1
+                                
                                 break
                                 #return 1, curr_data, vb_V, vp_V, tunneling_steps
                             else:
@@ -717,7 +717,7 @@ class MeasGUI:
                         self.parent.graph_gui.update_graph()
                 STOP_BTN_FLAG = 0
                 plt.ioff()
-                messagebox.showinfo("TUNNELING APPROACH", "Success. The tunneling approach has ended. You can now enter the feedback controller.")
+                messagebox.showinfo("TUNNELING APPROACH", f"Success. The tunneling approach has ended. Received {curr_data} nA at Piezo Voltage of {vpiezo_tip} V. You can now enter the feedback controller.")
                 self.feedback_ctrl_btn.configure(state="normal")
                 self.stop_leds()
                 self.initializer.enable_widgets(self)
@@ -730,16 +730,16 @@ class MeasGUI:
 
 ############################################# FEEDBACK CONTROL #################################################
     
-    def feedback_controller(self):
-        """
-        Starts the feedback controller separate thread to avoid freezing
-        the GUI.
-        """
-        self.feedback_ctrl_thread = threading.Thread(target=self._feedback_ctrl_impl)
-        self.feedback_ctrl_thread.start()
-    
+    #def feedback_controller(self):
+    #    """
+    #    Starts the feedback controller separate thread to avoid freezing
+    #    the GUI.
+    #    """
+    #    self.feedback_ctrl_thread = threading.Thread(target=self._feedback_ctrl_impl)
+    #    self.feedback_ctrl_thread.start()
+    #
         
-    def _feedback_ctrl_impl(self):
+    def feedback_controller(self):# _feedback_ctrl_impl(self):
         """
         This function uses feedback to hold a desired tunneling current.
 
@@ -761,9 +761,10 @@ class MeasGUI:
         else:
         ##########    
             TUNN_APPR_FLAG = 0
-            if FEEDBACK_CTRL_FLAG == 0:
-                messagebox.showerror("ERROR", "Error. Tunneling current has not been found yet.")
-                return 
+            FEEDBACK_CTRL_FLAG = 1
+            #if FEEDBACK_CTRL_FLAG == 0:
+            #    messagebox.showerror("ERROR", "Error. Tunneling current has not been found yet.")
+            #    return 
             
             port = self.parent.serial_ctrl.serial_port
             
@@ -800,11 +801,11 @@ class MeasGUI:
                         # If no tunneling current is detected, step down with a constant step size
                         if(curr_data < globals.CONTROLLER_MIN_CURR):
                             vpiezo_tip, tunneling_steps = self.auto_move_tip(tunneling_steps, globals.CONTROLLER_CONST_STEP_SZ_NM, globals.DIR_DOWN)
-                        # Use feedback control to maintain targer current
+                        # Use feedback control to maintain target current
                         else:
                             error = curr_setpoint - curr_data
                             dist = error * globals.CONTROLLER_DC_GAIN
-                            print(f"Vpzo = {vpiezo_tip}, dist = {dist}, error = {error}, steps = {tunneling_steps}")
+                            #print(f"Vpzo = {vpiezo_tip}, dist = {dist}, error = {error}, steps = {tunneling_steps}") ## DEBUG
                             if(dist < 0):
                                 vpiezo_tip, tunneling_steps = self.auto_move_tip(tunneling_steps, -dist, globals.DIR_UP)               
                                 #time.sleep(0.005)
@@ -1620,7 +1621,7 @@ class MeasGUI:
         curr_data += self.curr_offset
         self.label2.configure(text=f"{curr_data:.4f} nA")
         #self.label11.configure(text=f"{vpiezo_dist:.4f}")
-        self.label12.configure(text=f"{vp_V:.3f} ")
+        self.label12.configure(text=f"{vp_V:.5f} ")
 
     def save_notes(self, _=None):
         """
@@ -1769,6 +1770,7 @@ class GraphGUI:
         global CAP_APPR_FLAG
         global TUNN_APPR_FLAG
         global TUNN_APPROACH_ESCAPE_FLG
+        global FEEDBACK_CTRL_FLAG
         
         rollover_time = globals.ROLLOVER_GRAPH_TIME
 
@@ -1816,6 +1818,8 @@ class GraphGUI:
         
         elif CAP_APPR_FLAG:
             update_interval = 10
+        elif FEEDBACK_CTRL_FLAG:
+            update_interval = 1     
         
         if (len(self.y_data) % update_interval == 0):
             if not TUNN_APPR_FLAG:
