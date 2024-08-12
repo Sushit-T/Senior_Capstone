@@ -58,9 +58,8 @@ sample_rate_done_flag   = 0
 sample_size_save        = None
 sample_size_done_flag   = 0
 
-# Used for moving the stepper motor
-home_pos_total_steps    = None
-curr_pos_total_steps    = None
+# Used for keeping track of the position of the stepper motor
+total_steps    = None
 
 # Used for the tunneling approach
 tip_app_total_steps     = None
@@ -274,7 +273,7 @@ class ComGUI:
         A message sent to the MCU upon valid connection of a port, starting the MCU program.
         """
         global startup_flag
-        global curr_pos_total_steps
+        global total_steps
         global vb_V
         global vp_V
         
@@ -287,8 +286,8 @@ class ComGUI:
             time.sleep(0.1)
             print("=============== STARTUP ROUTINE ===============")
             # Obtain step count
-            curr_pos_total_steps = self.parent.meas_gui.send_msg_retry(port, globals.MSG_C, ztmCMD.CMD_REQ_STEP_COUNT.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_STEP_COUNT.value)
-            print(f"Step count upon startup: {curr_pos_total_steps}")
+            total_steps = self.parent.meas_gui.send_msg_retry(port, globals.MSG_C, ztmCMD.CMD_REQ_STEP_COUNT.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_STEP_COUNT.value)
+            print(f"Step count upon startup: {total_steps}")
             
             # Set vbias to 0 upon startup
             self.parent.meas_gui.send_msg_retry(port, globals.MSG_A, ztmCMD.CMD_SET_VBIAS.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_DONE.value, 0, 0, 0)
@@ -1587,8 +1586,7 @@ class MeasGUI:
         """
         Function to save the new home position, where the tip is at when the function is called.
         """
-        global curr_pos_total_steps
-        global home_pos_total_steps
+        global total_steps
         
         if self.check_connection():
             return
@@ -1599,16 +1597,51 @@ class MeasGUI:
             self.parent.clear_buffer()
             
             start_time = time.time()
-            curr_pos_total_steps = self.send_msg_retry(port, globals.MSG_C, ztmCMD.CMD_REQ_STEP_COUNT.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_STEP_COUNT.value)
+            success = self.send_msg_retry(port, globals.MSG_C, ztmCMD.CMD_STEPPER_RESET_HOME_POSITION.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_DONE.value)
 
-            while not curr_pos_total_steps and (time.time() - start_time) < globals.TIMEOUT:
-                curr_pos_total_steps = self.send_msg_retry(port, globals.MSG_C, ztmCMD.CMD_REQ_STEP_COUNT.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_STEP_COUNT.value)
-            if curr_pos_total_steps:
-                home_pos_total_steps = curr_pos_total_steps
+            while not success and (time.time() - start_time) < globals.TIMEOUT:
+                success = self.send_msg_retry(port, globals.MSG_C, ztmCMD.CMD_STEPPER_RESET_HOME_POSITION.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_DONE.value)
+            if success:
+                total_steps = 0
                 return
             else:
                 messagebox.showinfo("Information", "Did not process change in value within timeout period. Please try again.")
 
+    def return_home(self):
+        """
+        Method to return to the home position.
+
+        Returns:
+            _type_: _description_
+        """
+        timeout = globals.TIMEOUT
+        
+        if self.check_connection():
+            return
+        else:
+            # Request total step for stepper motor from MCU
+            port = self.parent.serial_ctrl.serial_port
+            
+            # Clear buffer
+            self.parent.clear_buffer()
+
+            start_time = time.time()
+            
+            success = self.send_msg_retry(port, globals.MSG_C, ztmCMD.CMD_RETURN_TIP_HOME.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_DONE.value)
+            while not success and (time.time() - start_time) < timeout:
+                success = self.send_msg_retry(port, globals.MSG_C, ztmCMD.CMD_RETURN_TIP_HOME.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_DONE.value)
+
+            # If a home position has not been set, error message and return from function
+            if total_steps == None:
+                messagebox.showerror("INVALID", f"No home position has been set.")
+                return
+            '''
+            elif home_pos_total_steps == curr_pos_total_steps:
+                messagebox.showerror("INVALID", f"Stepper motor is already at home position.")
+                return
+            '''
+            
+    '''
     def return_home(self):
         """
         Function to return to the home position and send it to the MCU.
@@ -1659,7 +1692,8 @@ class MeasGUI:
                 curr_pos_total_steps = self.send_msg_retry(self.parent.serial_ctrl.serial_port, globals.MSG_C, ztmCMD.CMD_REQ_STEP_COUNT.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_STEP_COUNT.value)
             else:
                 messagebox.showinfo("Information", "Did not process change in value within timeout period. Please try again.")
-    
+        '''
+        
     def check_connection(self):
         """
         Function to check that there is a valid port connection.
@@ -1824,7 +1858,7 @@ class GraphGUI:
             'feedback_control': "feedback_control_cache.csv"
         }
         
-        self.init_cache_file()
+        #self.init_cache_file()
         
         # Configures plot
         self.fig, self.ax = plt.subplots()
@@ -1893,7 +1927,7 @@ class GraphGUI:
         self.time_data.append(formatted_time)
         
         # Write every data point to the cache file for the specified process
-        self.write_to_cache(process, formatted_time, curr_data)
+        #self.write_to_cache(process, formatted_time, curr_data)
 
         # Set x-axis parameters
         self.ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M:%S'))
