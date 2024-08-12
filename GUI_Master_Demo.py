@@ -358,9 +358,8 @@ class MeasGUI:
         Method to open the I-V Sweep window when the "Acquire I-V" button is clicked.
         """
         self.acquire_iz_btn["state"] = "disabled"
-        port = self.parent.serial_ctrl.serial_port
         new_window = ctk.CTkToplevel(self.root)
-        IVWindow(new_window, port)
+        IVWindow(new_window, self.parent.serial_ctrl)
         new_window.protocol("WM_DELETE_WINDOW", lambda: self.on_closing(new_window))
         
         # Disable main window
@@ -371,9 +370,8 @@ class MeasGUI:
         Method to open the I-Z Sweep window when the "Acquire I-Z" button is clicked.
         """
         self.acquire_iv_btn["state"] = "disabled"
-        port = self.parent.serial_ctrl.serial_port
         new_window = ctk.CTkToplevel(self.root)
-        IZWindow(new_window, port)
+        IZWindow(new_window, self.parent.serial_ctrl)
         new_window.protocol("WM_DELETE_WINDOW", lambda: self.on_closing(new_window))
         
         # Disable main window
@@ -567,7 +565,7 @@ class MeasGUI:
                 messagebox.showerror("ERROR", "Error. Please try again.")
                 return False
     
-    def send_msg_cap_approach(self, port, cmd, status, status_response, max_attempts=globals.MAX_ATTEMPTS, timeout=globals.TIMEOUT):
+    def send_msg_cap_approach(self, port, cmd, status, status_response, timeout=globals.TIMEOUT):
         """
         Function to send a message to the MCU and retry if we do
         not receive the expected response, using a timeout instead of a fixed sleep.
@@ -629,12 +627,21 @@ class MeasGUI:
         Returns:
             value (float): Value the widget will be set to.
         """
+        user_input = label.get()
+        
+        if user_input == '':
+            value = 0.0
+            print(f"Empty input detected for {value_name}. Setting value to 0.0.")
+            return value
+        
         try:
-            value = float(label.get())
+            value = float(user_input)
         except ValueError:
+            print(f"Invalid input for {value_name}. Using default value of {default_value}.")
             messagebox.showerror("INVALID VALUE", f"Invalid input for {value_name}. Using default value of {default_value}.")
             value = default_value
-        return value  
+        
+        return value
     
 ############################################# TIP APPROACH #################################################
     '''
@@ -671,8 +678,10 @@ class MeasGUI:
             port = self.parent.serial_ctrl.serial_port
             
             if not self.saveCurrentSetpoint():
+                messagebox.showerror("ERROR", "Error. Please enter a current setpoint.")
                 return 
             if not self.saveSampleBias():
+                messagebox.showerror("ERROR", "Error. Please enter a sample bias.")
                 return
             
             TUNN_APPR_FLAG = 1
@@ -778,6 +787,11 @@ class MeasGUI:
         ##########    
             TUNN_APPR_FLAG = 0
             FEEDBACK_CTRL_FLAG = 1
+            sum = 0
+            errors = [0 for _ in range(3)]
+            avg_error = 0
+            error_index = 0
+    
             #if FEEDBACK_CTRL_FLAG == 0:
             #    messagebox.showerror("ERROR", "Error. Tunneling current has not been found yet.")
             #    return 
@@ -785,7 +799,11 @@ class MeasGUI:
             port = self.parent.serial_ctrl.serial_port
             
             if not self.saveCurrentSetpoint():
+                messagebox.showerror("ERROR", "Error. Please enter a current setpoint.")
                 return 
+            #if not self.saveSampleBias():
+            #    messagebox.showerror("ERROR", "Error. Please enter a sample bias.")
+            #    return
             
             self.parent.clear_buffer()
             
@@ -814,14 +832,20 @@ class MeasGUI:
                     success = self.send_msg_retry(port, globals.MSG_C, ztmCMD.CMD_REQ_DATA.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_MEASUREMENTS.value)
                     
                     if success:
+                        error = curr_setpoint - curr_data
+                        avg_error += ((error - errors[error_index]) / 3)
+                        errors[error_index] = error
+                        error_index = (error_index + 1) % 3
                         # If no tunneling current is detected, step down with a constant step size
                         if(curr_data < globals.CONTROLLER_MIN_CURR):
                             vpiezo_tip, tunneling_steps = self.auto_move_tip(tunneling_steps, globals.CONTROLLER_CONST_STEP_SZ_NM, globals.DIR_DOWN)
+                            sum = 0
+                            last_output = 0
                         # Use feedback control to maintain target current
                         else:
-                            error = curr_setpoint - curr_data
-                            dist = error * globals.Kp + globals.Kd * (error - last_error) / globals.Ts
-                            last_error = error
+                            sum += avg_error * globals.Ts
+                            dist = avg_error * globals.Kp + globals.Ki * sum + (globals.Kd * (avg_error - last_error) / globals.Ts)
+                            last_error = avg_error
                             #print(f"Vpzo = {vpiezo_tip}, dist = {dist}, error = {error}, steps = {tunneling_steps}") ## DEBUG
                             if(dist < 0):
                                 vpiezo_tip, tunneling_steps = self.auto_move_tip(tunneling_steps, -dist, globals.DIR_UP)               
@@ -1202,11 +1226,23 @@ class MeasGUI:
             vpzo_value = self.get_float_value(self.label10, 1.0, "Piezo Voltage")
             if vpzo_value < globals.VPIEZO_DELTA_MIN:
                 vpzo_value = globals.VPIEZO_DELTA_MIN
-                messagebox.showerror("Invalid Value", "Invalid input. Voltage is too small, defaulted to 3 mV.")
+                messagebox.showerror("Invalid Value", f"Invalid input. Voltage is too small, defaulted to {globals.VPIEZO_DELTA_MIN*1000} mV.")
 
             self.label12.configure(text=f"{0:.3f} ")
             self.label10.delete(0, END)
             self.label10.insert(0, str(vpzo_value))
+        
+        self.updateVpzoDistance(vpzo_value)
+    
+    def updateVpzoDistance(self, delta):
+        """
+        Method to update the vpiezo approximate distance.
+
+        Args:
+            delta (float): User inputted vpiezo delta value.
+        """
+        vpzo_dist = delta * globals.PIEZO_EXTN_RATIO
+        self.label11.configure(text=f"{vpzo_dist:.3f}")
         
     def piezo_inc(self):
         """
@@ -1314,7 +1350,6 @@ class MeasGUI:
             else:
                 self.label3.delete(0,END)
                 self.label3.insert(0,0.000)
-                messagebox.showerror("Invalid Value", "Invalid value. Please enter a valid current setpoint value.")
                 return False
 
 
@@ -1330,6 +1365,12 @@ class MeasGUI:
             self.root.focus()
             return
         else:
+            user_input = self.label4.get()
+            if user_input == '':
+                self.root.focus()
+                self.label4.delete(0,END)
+                self.label4.insert(0,0.000)
+                
             try:
                 self.curr_offset = float(self.label4.get())
                 self.root.focus()
@@ -1362,8 +1403,15 @@ class MeasGUI:
                 vbias_save = self.get_float_value(self.label6, 0.0, "sample bias")
                 
                 if TUNN_APPR_FLAG:
-                    if vbias_save == 0.0 or vbias_save == None:
+                    if vbias_save == None:
+                        vbias_save = 0.0
                         messagebox.showerror("Invalid Value", f"Invalid voltage bias. Please enter a nonzero value.")
+                        self.label6.delete(0, END)
+                        self.label6.insert(0, vbias_save)
+                        return
+                    elif vbias_save == 0.0:
+                        self.label6.delete(0, END)
+                        self.label6.insert(0, vbias_save)
                         return
                 
                 # Checks if it is within range
@@ -1470,8 +1518,9 @@ class MeasGUI:
         else:
             self.root.focus()
             port = self.parent.serial_ctrl.serial_port
+            
             try:
-                sample_size_save = int(self.sample_size.get())
+                sample_size_save = int(self.sample_size_entry.get())
                 if sample_size_save not in range(1, 1025):
                     if sample_size_save < 1:
                         sample_size_save = 1
@@ -1482,8 +1531,8 @@ class MeasGUI:
 
                     sample_size_str = str(sample_size_save)
                     self.root.focus()
-                    self.sample_size.delete(0, END)
-                    self.sample_size.insert(0, sample_size_str)
+                    self.sample_size_entry.delete(0, END)
+                    self.sample_size_entry.insert(0, sample_size_str)
 
                 # Clear buffer
                 self.parent.clear_buffer()
@@ -1502,7 +1551,7 @@ class MeasGUI:
                     messagebox.showinfo("Information", "Did not process change in value within timeout period. Please try again.")
             except ValueError:
                 self.root.focus()
-                self.sample_size.delete(0, END)
+                self.sample_size_entry.delete(0, END)
                 messagebox.showerror("Invalid Value", "Invalid input. Please enter a whole number from 1 to 1024.")
                         
     def saveStepperMotorAdjust(self, _=None):
@@ -1725,7 +1774,7 @@ class MeasGUI:
             self.curr_offset = 0.0  # Default to 0 if the value is not a valid float
         curr_data += self.curr_offset
         self.label2.configure(text=f"{curr_data:.4f} nA")
-        self.label12.configure(text=f"{vp_V:.3f} ")
+        self.label12.configure(text=f"{vp_V:.5f} ")
 
     def save_notes(self, _=None):
         """
@@ -1860,7 +1909,7 @@ class GraphGUI:
     """
     Function to initialize the data arrays and the graphical display.
     """
-    def __init__(self, root, meas_gui, max_data_points=65535):
+    def __init__(self, root, meas_gui, max_data_points=4095):
         """
         This initializes the graph widget for the three different processes.
         
@@ -1879,6 +1928,7 @@ class GraphGUI:
             'feedback_control': "feedback_control_cache.csv"
         }
         
+        # INITIALIZE CACHE FILE
         #self.init_cache_file()
         
         # Configures plot
@@ -1892,6 +1942,9 @@ class GraphGUI:
         self.x_data = deque(maxlen=max_data_points)
         self.time_data = deque(maxlen=max_data_points)
         self.line, = self.ax.plot([], [], 'r-')
+
+        # Initialize an update interval counter
+        self.graphUpdateCounter = 0
 
         # Create a canvas to embed the figure in Tkinter
         self.canvas = FigureCanvasTkAgg(self.fig, master=self.root)
@@ -1933,7 +1986,7 @@ class GraphGUI:
         global CAP_APPR_FLAG
         global TUNN_APPR_FLAG
         global TUNN_APPROACH_ESCAPE_FLG
-                                 
+        global FEEDBACK_CTRL_FLAG
         
         rollover_time = globals.ROLLOVER_GRAPH_TIME
 
@@ -1944,8 +1997,8 @@ class GraphGUI:
         self.x_data.append(time_now)
         
         # Append time to include milliseconds for exported data
-        self.formatted_time = time_now.strftime('%H:%M:%S.%f')[:-3]
-        self.time_data.append(self.formatted_time)
+        formatted_time = time_now.strftime('%H:%M:%S.%f')[:-3]
+        self.time_data.append(formatted_time)
         
         # Write every data point to the cache file for the specified process
         #self.write_to_cache(process, formatted_time, curr_data)
@@ -1968,32 +2021,41 @@ class GraphGUI:
                 A = 900     # Scaling factor    
                 k = 0.005   # Decay rate
                 update_interval = max(int(A* math.exp(-k * sample_size_save) + B), B)     # Minimum interval
-        
+
+            self.graphUpdateCounter = (self.graphUpdateCounter + 1) % update_interval
+
+
         elif TUNN_APPR_FLAG:
-            update_interval = 512
+            update_interval = 511
+            self.graphUpdateCounter = (self.graphUpdateCounter + 1) % update_interval
             if TUNN_APPROACH_ESCAPE_FLG:
                 update_interval = 1
                 self.line.set_data(self.x_data, self.y_data)
                 #TUNN_APPROACH_ESCAPE_FLG = 0
-            if len(self.y_data) % update_interval == 0 and not TUNN_APPROACH_ESCAPE_FLG: # Calculate the average of y_data
-                self.avg_y = sum(self.y_data) / len(self.y_data) if len(self.y_data) > 0 else 0
+            if (self.graphUpdateCounter == (update_interval-1)) and not TUNN_APPROACH_ESCAPE_FLG: # Calculate the average of y_data
+                # self.avg_y = sum(self.y_data) / len(self.y_data) if len(self.y_data) > 0 else 0
                 # Create a constant y-value list with the average value
-                self.avg_y_data = [self.avg_y] * len(self.x_data)
-                self.line.set_data(self.x_data, self.avg_y_data)                                            
+                # self.avg_y_data = [self.avg_y] * len(self.x_data)
+                #self.line.set_data(self.x_data, self.avg_y_data)
+                # UPDATED HERE
+                self.line.set_data(self.x_data, self.y_data)
         
         elif CAP_APPR_FLAG:
             update_interval = 10                    
-
+            self.graphUpdateCounter = (self.graphUpdateCounter + 1) % update_interval
+        elif FEEDBACK_CTRL_FLAG:
+            update_interval = 3   
+            self.graphUpdateCounter = (self.graphUpdateCounter + 1) % update_interval  
         # Define the time interval for scaling (e.g., last 30 seconds)
         time_interval = datetime.timedelta(seconds=30)
         min_time = datetime.datetime.now() - time_interval
             
-        if len(self.y_data) % update_interval == 0:
+        if (self.graphUpdateCounter == (update_interval-1)):
             if not TUNN_APPR_FLAG:
                 self.line.set_data(self.x_data, self.y_data)
-                filtered_y_data = [y for x, y in zip(self.x_data, self.y_data) if x >= min_time]
-            else:
-                filtered_y_data = [y for x, y in zip(self.x_data, self.avg_y_data) if x >= min_time]
+            filtered_y_data = [y for x, y in zip(self.x_data, self.y_data) if x >= min_time]
+            #else:
+            #    filtered_y_data = [y for x, y in zip(self.x_data, self.y_data) if x >= min_time]
 
             # Calculate the min and max y-values in the filtered data
             if filtered_y_data:
@@ -2027,6 +2089,7 @@ class GraphGUI:
         self.y_data = deque(maxlen=self.max_data_points)
         self.x_data = deque(maxlen=self.max_data_points)
         self.time_data = deque(maxlen=self.max_data_points)
+        self.graphUpdateCounter = 0
         self.line, = self.ax.plot([], [], 'r-')
         self.canvas.draw()
         self.canvas.flush_events()

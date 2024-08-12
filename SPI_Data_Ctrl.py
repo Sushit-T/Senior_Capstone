@@ -72,6 +72,7 @@ class SerialCtrl:
 
     def start(self):
         try:
+            print(f"Attempting to open serial port: {self.port}")
             self.serial_port = serial.Serial(
                 port=self.port,
                 baudrate=self.baudrate,
@@ -94,6 +95,7 @@ class SerialCtrl:
             self.receive_thread.start()
             return True
         except serial.SerialException as e:
+            print(f"Failed to open serial port: {e}")
             self.serial_port = None
             return False
 

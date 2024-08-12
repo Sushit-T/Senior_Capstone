@@ -142,7 +142,13 @@ class HomepageWidgets:
         # Cache data logging
         meas_gui.cache_data_var = ctk.BooleanVar()
         meas_gui.cache_data_checkbtn = ctk.CTkCheckBox(meas_gui.start_stop_frame, text="Cache Data", text_color="black", variable=meas_gui.cache_data_var, onvalue=True, offvalue=False, command=meas_gui.cache_data)
-        
+
+        # Load the image using CTkImage
+        meas_gui.warning_image = ctk.CTkImage(Image.open("Images/warning.png"), size=(200, 175))
+
+        # Create a CTkLabel and set the image
+        meas_gui.warning_label = ctk.CTkLabel(meas_gui.root, image=meas_gui.warning_image,  text="")
+
         # Tip controller - DELETE LATER
         meas_gui.kp_frame = LabelFrame(meas_gui.root, text="Kp", padx=10, pady=2, bg="#ADD8E6")
         meas_gui.kp_label = Entry(meas_gui.kp_frame, bg="white", width=24)
@@ -257,15 +263,18 @@ class HomepageWidgets:
         meas_gui.return_to_home_frame.grid(row=10, column=9, sticky="w", padx=20)
         meas_gui.return_to_home_pos.grid(row=0, column=0, padx=18)
         
+        # Warning image
+        meas_gui.warning_label.grid(row=10, column=1, columnspan=2, rowspan=4)
+        
         # Tip controller - delete later
-        #meas_gui.kp_frame.grid(row=4, column=2)
-        #meas_gui.kp_label.grid(row=0, column=0)
+        meas_gui.kp_frame.grid(row=10, column=10)
+        meas_gui.kp_label.grid(row=0, column=0)
         
-        #meas_gui.kd_frame.grid(row=5, column=2)
-        #meas_gui.kd_label.grid(row=0, column=0)
+        meas_gui.kd_frame.grid(row=11, column=10)
+        meas_gui.kd_label.grid(row=0, column=0)
         
-        #meas_gui.ki_frame.grid(row=6, column=2)
-        #meas_gui.ki_label.grid(row=0, column=0)
+        meas_gui.ki_frame.grid(row=12, column=10)
+        meas_gui.ki_label.grid(row=0, column=0)
         
     def disable_widgets(self, meas_gui):
         '''
@@ -286,7 +295,7 @@ class HomepageWidgets:
         meas_gui.label3.configure(state="disabled")
         meas_gui.sample_rate_menu.configure(state="disabled")
         #meas_gui.coarse_adjust_menu.configure(state="disabled")
-        meas_gui.sample_size.configure(state="disabled")
+        meas_gui.sample_size_entry.configure(state="disabled")
         meas_gui.acquire_iv_btn.configure(state="disabled")
         meas_gui.acquire_iz_btn.configure(state="disabled")
         meas_gui.save_home_pos.configure(state="disabled")
@@ -301,7 +310,7 @@ class HomepageWidgets:
         meas_gui.label3.configure(state="normal")
         meas_gui.sample_rate_menu.configure(state="normal")
         #meas_gui.coarse_adjust_menu.configure(state="normal")
-        meas_gui.sample_size.configure(state="normal")
+        meas_gui.sample_size_entry.configure(state="normal")
         meas_gui.acquire_iv_btn.configure(state="normal")
         meas_gui.acquire_iz_btn.configure(state="normal")
         meas_gui.save_home_pos.configure(state="normal")
