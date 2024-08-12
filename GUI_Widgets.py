@@ -139,6 +139,10 @@ class HomepageWidgets:
         meas_gui.fine_adjust_btn_up = ctk.CTkButton(master=meas_gui.fine_adjust_frame, image=meas_gui.add_btn_image2, text = "", width=40, height=40, compound="bottom", fg_color="#eeeeee", bg_color="#eeeeee", corner_radius=0, command=meas_gui.stepper_motor_up)
         meas_gui.fine_adjust_btn_down = ctk.CTkButton(master=meas_gui.fine_adjust_frame, image=meas_gui.add_btn_image3, text="", width=40, height=40, compound="bottom", fg_color="#eeeeee", bg_color="#eeeeee", corner_radius=0, command=meas_gui.stepper_motor_down)
 
+        # Cache data logging
+        meas_gui.cache_data_var = ctk.BooleanVar()
+        meas_gui.cache_data_checkbtn = ctk.CTkCheckBox(meas_gui.start_stop_frame, text="Cache Data", text_color="black", variable=meas_gui.cache_data_var, onvalue=True, offvalue=False, command=meas_gui.cache_data)
+        
         # Tip controller - DELETE LATER
         meas_gui.kp_frame = LabelFrame(meas_gui.root, text="Kp", padx=10, pady=2, bg="#ADD8E6")
         meas_gui.kp_label = Entry(meas_gui.kp_frame, bg="white", width=24)
@@ -236,6 +240,7 @@ class HomepageWidgets:
         meas_gui.feedback_ctrl_btn.grid(row=1, column=0, sticky="e")
         meas_gui.enable_periodics_btn.grid(row=3, column=0, sticky="e")
         meas_gui.stop_btn.grid(row=1, column=1, sticky="ne", padx=20, pady=10)
+        meas_gui.cache_data_checkbtn.grid(row=3, column=1, padx=10, pady=5, sticky="e")
         
         # Stop LED (red)
         meas_gui.stop_led_btn.grid(row=0, column=1, sticky="")

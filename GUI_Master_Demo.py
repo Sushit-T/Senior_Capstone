@@ -1831,6 +1831,27 @@ class MeasGUI:
                 writer.writerows(data_to_export)
             messagebox.showinfo("Export Data", f"Data exported as {file_path}")
     
+    def cache_data(self):
+        global curr_data
+        
+        if self.cache_data_var.get():
+            file_path = filedialog.asksaveasfilename(defaultextension=".csv", filetypes=[("CSV files", "*.csv"), ("All files", "*.*")])
+            if file_path:
+                with open(file_path, 'w', newline='') as file:
+                    writer = csv.writer(file)
+                    # Headers
+                    writer.writerow(["Time (s)", "Current (nA)"])
+                    
+                    # Write all data points
+                    for time, current in zip(self.parent.graph_gui.time_data, self.parent.graph_gui.y_data):
+                        writer.writerow([time, current])
+
+                    # Optionally add the current data point
+                    writer.writerow([self.parent.graph_gui.formatted_time, curr_data])
+                    
+                    # Ensure data is written immediately
+                    #file.flush()
+        
     
 ###################################################################################################################
 #                                                 GraphGUI CLASS                                                  #
@@ -1923,8 +1944,8 @@ class GraphGUI:
         self.x_data.append(time_now)
         
         # Append time to include milliseconds for exported data
-        formatted_time = time_now.strftime('%H:%M:%S.%f')[:-3]
-        self.time_data.append(formatted_time)
+        self.formatted_time = time_now.strftime('%H:%M:%S.%f')[:-3]
+        self.time_data.append(self.formatted_time)
         
         # Write every data point to the cache file for the specified process
         #self.write_to_cache(process, formatted_time, curr_data)
