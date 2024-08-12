@@ -1828,7 +1828,7 @@ class GraphGUI:
     """
     Function to initialize the data arrays and the graphical display.
     """
-    def __init__(self, root, meas_gui, max_data_points=65535):
+    def __init__(self, root, meas_gui, max_data_points=4095):
         """
         This initializes the graph widget for the three different processes.
         
@@ -1847,7 +1847,8 @@ class GraphGUI:
             'feedback_control': "feedback_control_cache.csv"
         }
         
-        self.init_cache_file()
+        # INITIALIZE CACHE FILE
+        #self.init_cache_file()
         
         # Configures plot
         self.fig, self.ax = plt.subplots()
@@ -1860,6 +1861,9 @@ class GraphGUI:
         self.x_data = deque(maxlen=max_data_points)
         self.time_data = deque(maxlen=max_data_points)
         self.line, = self.ax.plot([], [], 'r-')
+
+        # Initialize an update interval counter
+        self.graphUpdateCounter = 0
 
         # Create a canvas to embed the figure in Tkinter
         self.canvas = FigureCanvasTkAgg(self.fig, master=self.root)
@@ -1916,7 +1920,7 @@ class GraphGUI:
         self.time_data.append(formatted_time)
         
         # Write every data point to the cache file for the specified process
-        self.write_to_cache(process, formatted_time, curr_data)
+        #self.write_to_cache(process, formatted_time, curr_data)
 
         # Set x-axis parameters
         self.ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M:%S'))
@@ -1936,14 +1940,18 @@ class GraphGUI:
                 A = 900     # Scaling factor    
                 k = 0.005   # Decay rate
                 update_interval = max(int(A* math.exp(-k * sample_size_save) + B), B)     # Minimum interval
-        
+
+            self.graphUpdateCounter = (self.graphUpdateCounter + 1) % update_interval
+
+
         elif TUNN_APPR_FLAG:
-            update_interval = 512
+            update_interval = 511
+            self.graphUpdateCounter = (self.graphUpdateCounter + 1) % update_interval
             if TUNN_APPROACH_ESCAPE_FLG:
                 update_interval = 1
                 self.line.set_data(self.x_data, self.y_data)
                 #TUNN_APPROACH_ESCAPE_FLG = 0
-            if (len(self.y_data) % update_interval == 0) and not TUNN_APPROACH_ESCAPE_FLG: # Calculate the average of y_data
+            if (self.graphUpdateCounter == (update_interval-1)) and not TUNN_APPROACH_ESCAPE_FLG: # Calculate the average of y_data
                 # self.avg_y = sum(self.y_data) / len(self.y_data) if len(self.y_data) > 0 else 0
                 # Create a constant y-value list with the average value
                 # self.avg_y_data = [self.avg_y] * len(self.x_data)
@@ -1953,17 +1961,20 @@ class GraphGUI:
         
         elif CAP_APPR_FLAG:
             update_interval = 10                    
-
+            self.graphUpdateCounter = (self.graphUpdateCounter + 1) % update_interval
+        elif FEEDBACK_CTRL_FLAG:
+            update_interval = 3   
+            self.graphUpdateCounter = (self.graphUpdateCounter + 1) % update_interval  
         # Define the time interval for scaling (e.g., last 30 seconds)
         time_interval = datetime.timedelta(seconds=30)
         min_time = datetime.datetime.now() - time_interval
             
-        if len(self.y_data) % update_interval == 0:
+        if (self.graphUpdateCounter == (update_interval-1)):
             if not TUNN_APPR_FLAG:
                 self.line.set_data(self.x_data, self.y_data)
-                filtered_y_data = [y for x, y in zip(self.x_data, self.y_data) if x >= min_time]
-            else:
-                filtered_y_data = [y for x, y in zip(self.x_data, self.y_data) if x >= min_time]
+            filtered_y_data = [y for x, y in zip(self.x_data, self.y_data) if x >= min_time]
+            #else:
+            #    filtered_y_data = [y for x, y in zip(self.x_data, self.y_data) if x >= min_time]
 
             # Calculate the min and max y-values in the filtered data
             if filtered_y_data:
@@ -1997,6 +2008,7 @@ class GraphGUI:
         self.y_data = deque(maxlen=self.max_data_points)
         self.x_data = deque(maxlen=self.max_data_points)
         self.time_data = deque(maxlen=self.max_data_points)
+        self.graphUpdateCounter = 0
         self.line, = self.ax.plot([], [], 'r-')
         self.canvas.draw()
         self.canvas.flush_events()
