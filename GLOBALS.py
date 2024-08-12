@@ -34,7 +34,7 @@ TUNNELING_SAMPLE_SIZE   = 1
 TIP CONTROLLER GLOBAL VARIABLES
 """
 CONTROLLER_MIN_CURR                 = 0.1 #nA
-CONTROLLER_CONST_STEP_SZ_NM         = 0.15 #nm    
+CONTROLLER_CONST_STEP_SZ_NM         = 0.075 #nm    
 Kp                  = 0.005
 Kd                  = 0.0001
 Ki                  = 0.0001

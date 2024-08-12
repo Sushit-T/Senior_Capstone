@@ -783,6 +783,10 @@ class MeasGUI:
             TUNN_APPR_FLAG = 0
             FEEDBACK_CTRL_FLAG = 1
             sum = 0
+            errors = [0 for _ in range(3)]
+            avg_error = 0
+            error_index = 0
+
             #if FEEDBACK_CTRL_FLAG == 0:
             #    messagebox.showerror("ERROR", "Error. Tunneling current has not been found yet.")
             #    return 
@@ -819,16 +823,20 @@ class MeasGUI:
                     success = self.send_msg_retry(port, globals.MSG_C, ztmCMD.CMD_REQ_DATA.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_MEASUREMENTS.value)
                     
                     if success:
+                        error = curr_setpoint - curr_data
+                        avg_error += ((error - errors[error_index]) / 3)
+                        errors[error_index] = error
+                        error_index = (error_index + 1) % 3
                         # If no tunneling current is detected, step down with a constant step size
                         if(curr_data < globals.CONTROLLER_MIN_CURR):
                             vpiezo_tip, tunneling_steps = self.auto_move_tip(tunneling_steps, globals.CONTROLLER_CONST_STEP_SZ_NM, globals.DIR_DOWN)
                             sum = 0
+                            last_output = 0
                         # Use feedback control to maintain target current
                         else:
-                            error = curr_setpoint - curr_data
-                            sum += error * globals.Ts
-                            dist = error * globals.Kp + globals.Ki * sum + (globals.Kd * (error - last_error) / globals.Ts)
-                            last_error = error
+                            sum += avg_error * globals.Ts
+                            dist = avg_error * globals.Kp + globals.Ki * sum + (globals.Kd * (avg_error - last_error) / globals.Ts)
+                            last_error = avg_error
                             #print(f"Vpzo = {vpiezo_tip}, dist = {dist}, error = {error}, steps = {tunneling_steps}") ## DEBUG
                             if(dist < 0):
                                 vpiezo_tip, tunneling_steps = self.auto_move_tip(tunneling_steps, -dist, globals.DIR_UP)               
@@ -1936,10 +1944,11 @@ class GraphGUI:
                 self.line.set_data(self.x_data, self.y_data)
                 #TUNN_APPROACH_ESCAPE_FLG = 0
             if (len(self.y_data) % update_interval == 0) and not TUNN_APPROACH_ESCAPE_FLG: # Calculate the average of y_data
-                #self.avg_y = sum(self.y_data) / len(self.y_data) if len(self.y_data) > 0 else 0
+                # self.avg_y = sum(self.y_data) / len(self.y_data) if len(self.y_data) > 0 else 0
                 # Create a constant y-value list with the average value
-                #self.avg_y_data = [self.avg_y] * len(self.x_data)
+                # self.avg_y_data = [self.avg_y] * len(self.x_data)
                 #self.line.set_data(self.x_data, self.avg_y_data)
+                # UPDATED HERE
                 self.line.set_data(self.x_data, self.y_data)
         
         elif CAP_APPR_FLAG:
@@ -1954,7 +1963,7 @@ class GraphGUI:
                 self.line.set_data(self.x_data, self.y_data)
                 filtered_y_data = [y for x, y in zip(self.x_data, self.y_data) if x >= min_time]
             else:
-                filtered_y_data = [y for x, y in zip(self.x_data, self.avg_y_data) if x >= min_time]
+                filtered_y_data = [y for x, y in zip(self.x_data, self.y_data) if x >= min_time]
 
             # Calculate the min and max y-values in the filtered data
             if filtered_y_data:
