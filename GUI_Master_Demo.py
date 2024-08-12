@@ -70,8 +70,12 @@ TUNN_APPR_FLAG      = 0
 CAP_APPR_FLAG       = 0
 PERIODICS_FLAG      = 0
 FEEDBACK_CTRL_FLAG  = 0
-TUNN_APPROACH_ESCAPE_FLG = 0
-STOP_BTN_FLAG       = 0
+TUNN_APPROACH_ESCAPE_FLG    = 0
+POS_CURR_SETPOINT_FLAG      = 0
+NEG_CURR_SETPOINT_FLAG      = 0
+POS_SAMPLE_BIAS_FLAG        = 0
+NEG_SAMPLE_BIAS_FLAG        = 0
+STOP_BTN_FLAG               = 0
 ###########################################
 
 
@@ -664,6 +668,12 @@ class MeasGUI:
         global TUNN_APPR_FLAG
         global TUNN_APPROACH_ESCAPE_FLG
         global FEEDBACK_CTRL_FLAG
+        
+        global POS_CURR_SETPOINT_FLAG
+        global NEG_CURR_SETPOINT_FLAG
+        global POS_SAMPLE_BIAS_FLAG
+        global NEG_SAMPLE_BIAS_FLAG
+        
         global curr_setpoint
         global vpiezo_tip
         global tunneling_steps
@@ -682,6 +692,9 @@ class MeasGUI:
                 return 
             if not self.saveSampleBias():
                 messagebox.showerror("ERROR", "Error. Please enter a sample bias.")
+                return
+            if not POS_CURR_SETPOINT_FLAG == POS_SAMPLE_BIAS_FLAG or not NEG_CURR_SETPOINT_FLAG == NEG_SAMPLE_BIAS_FLAG:
+                messagebox.showerror("ERROR", "Error. Please enter a current setpoint and sample bias with the same signage.")
                 return
             
             TUNN_APPR_FLAG = 1
@@ -774,6 +787,12 @@ class MeasGUI:
         global STOP_BTN_FLAG
         global FEEDBACK_CTRL_FLAG
         global TUNN_APPR_FLAG
+        
+        global POS_CURR_SETPOINT_FLAG
+        global NEG_CURR_SETPOINT_FLAG
+        global POS_SAMPLE_BIAS_FLAG
+        global NEG_SAMPLE_BIAS_FLAG
+        
         global curr_setpoint
         global vpiezo_tip
         global tunneling_steps
@@ -804,6 +823,10 @@ class MeasGUI:
             #if not self.saveSampleBias():
             #    messagebox.showerror("ERROR", "Error. Please enter a sample bias.")
             #    return
+
+            if not POS_CURR_SETPOINT_FLAG == POS_SAMPLE_BIAS_FLAG or not NEG_CURR_SETPOINT_FLAG == NEG_SAMPLE_BIAS_FLAG:
+                messagebox.showerror("ERROR", "Error. Please enter a current setpoint and sample bias with the same signage.")
+                return
             
             self.parent.clear_buffer()
             
@@ -1339,15 +1362,25 @@ class MeasGUI:
             _ (_type_): [ADD DESCRIPTION HERE.]
         """
         global curr_setpoint 
+        global POS_CURR_SETPOINT_FLAG
+        global NEG_CURR_SETPOINT_FLAG
         
         self.root.focus()
         if self.check_connection():
             return
         else:
             curr_setpoint = self.get_float_value(self.label3, 0.0, "current setpoint")
-            if 0.1 <= curr_setpoint <= 10:
+            if globals.POS_CURR_SETPOINT_MIN <= curr_setpoint <= globals.POS_CURR_SETPOINT_MAX:
+                POS_CURR_SETPOINT_FLAG = 1
+                NEG_CURR_SETPOINT_FLAG = 0
+                return True
+            elif globals.NEG_CURR_SETPOINT_MIN <= curr_setpoint <= globals.NEG_CURR_SETPOINT_MAX:
+                NEG_CURR_SETPOINT_FLAG = 1
+                POS_CURR_SETPOINT_FLAG = 0
                 return True
             else:
+                NEG_CURR_SETPOINT_FLAG = 0
+                POS_CURR_SETPOINT_FLAG = 0
                 self.label3.delete(0,END)
                 self.label3.insert(0,0.000)
                 return False
@@ -1391,6 +1424,8 @@ class MeasGUI:
         global vbias_save
         global vbias_done_flag
         global TUNN_APPR_FLAG
+        global POS_SAMPLE_BIAS_FLAG
+        global NEG_SAMPLE_BIAS_FLAG
         
         if self.check_connection():
             self.root.focus()
@@ -1421,6 +1456,16 @@ class MeasGUI:
                 elif vbias_save > globals.VBIAS_MAX:
                     vbias_save = globals.VBIAS_MAX - 1
                     messagebox.showerror("Invalid Value", f"Invalid input. Sample bias cannot exceed 10 V.")
+                    
+                if globals.VBIAS_MIN <= vbias_save < 0:
+                    NEG_SAMPLE_BIAS_FLAG = 1
+                    POS_SAMPLE_BIAS_FLAG = 0
+                elif 0 < vbias_save < globals.VBIAS_MAX:
+                    POS_SAMPLE_BIAS_FLAG = 1
+                    NEG_SAMPLE_BIAS_FLAG = 0
+                else:
+                    POS_SAMPLE_BIAS_FLAG = 0
+                    NEG_SAMPLE_BIAS_FLAG = 0
                     
                 self.label6.delete(0, END)
                 self.label6.insert(0, vbias_save)
