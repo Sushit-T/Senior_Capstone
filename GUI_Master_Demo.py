@@ -1,8 +1,13 @@
 """
-Filename:   GUI_Master_Demo.py
-Author:     Sean Follo, Jacob Kucinski, Kelsey Marquez, & Dustin Matthews
-Date:       8/13/24
-Description:
+Filename:       GUI_Master_Demo.py
+Author:         Sean Follo, Jacob Kucinski, Kelsey Marquez, & Dustin Matthews
+Date:           8/13/24
+Description:    This is the functionality for the homepage window of the ZTM application.
+                It creates the processes allow the user to connect to a COM port for 
+                serial communication, save user-inputted values, display measurements
+                sent by the ZTM controller, and run algorithms needed for the ZTM to 
+                reach tunneling current.
+
 """
 from tkinter import Label, LabelFrame, Button, StringVar, OptionMenu, END
 from tkinter import messagebox 

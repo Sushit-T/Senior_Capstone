@@ -1,8 +1,11 @@
 """
-Filename:   IV_Window.py
-Author:     Jacob Kucinski and Kelsey Marquez
-Date:       8/8/24
-Description:
+Filename:       IV_Window.py
+Author:         Jacob Kucinski and Kelsey Marquez
+Date:           8/13/24
+Description:    This file creates the IV sweep window for the ZTM application.
+                It verifies communication with a COM port, saves user-inputted
+                values, and retrieves data to display a range of bias voltage values
+                as a function of the current.
 """
 from tkinter import Label, LabelFrame, Entry, Text
 from tkinter import messagebox, filedialog
@@ -18,13 +21,14 @@ import time
 import csv
 
 import globals
-from SPI_Data_Ctrl import SerialCtrl
 from ztmSerialCommLibrary import ztmCMD, ztmSTATUS, usbMsgFunctions
 from value_conversion import Convert
 
-
+###########################################
+############# GLOBAL VARIABLES ############
 curr_data = 0
 vb_V = 0
+###########################################
 
 class IVWindow:
     def __init__(self, root, serial_ctrl):
@@ -47,7 +51,7 @@ class IVWindow:
         
         self.root.title("Acquire I-V")
         self.root.config(bg="#b1ddf0")
-        self.root.geometry("800x650")   # (width x length)
+        self.root.geometry("800x575")   # (width x length)
 
         # initialize serial control
         #self.serial_ctrl = SerialCtrl(self.port_name, globals.BAUDRATE)
@@ -134,11 +138,11 @@ class IVWindow:
         self.add_btn_image4 = ctk.CTkImage(Image.open("Images/Start_LED.png"), size=(35,35))
         self.add_btn_image5 = ctk.CTkImage(Image.open("Images/Stop_LED.png"), size=(35,35))
 																						   
-        
-        self.start_btn = ctk.CTkButton(self.root, image=self.add_btn_image1, text="", width=90, height=45, fg_color="#b1ddf0", bg_color="#b1ddf0", corner_radius=0, command=self.start_reading)
-        self.stop_btn = ctk.CTkButton(self.root, image=self.add_btn_image2, text="", width=90, height=35, fg_color="#b1ddf0", bg_color="#b1ddf0", corner_radius=0, command=self.stop_reading)																																	   
-        self.green_LED = ctk.CTkLabel(self.root, image=self.add_btn_image4, text="", width=35, height=35, fg_color="#b1ddf0", bg_color="#b1ddf0", corner_radius=0)
-        self.red_LED = ctk.CTkLabel(self.root, image=self.add_btn_image5, text="", width=35, height=35, fg_color="#b1ddf0", bg_color="#b1ddf0", corner_radius=0)
+        self.process_frame = LabelFrame(self.root, text="Start/Stop Process", padx=5, pady=5, bg="#b1ddf0")
+        self.start_btn = ctk.CTkButton(self.process_frame, image=self.add_btn_image1, text="", width=90, height=45, fg_color="#b1ddf0", bg_color="#b1ddf0", corner_radius=0, command=self.start_reading)
+        self.stop_btn = ctk.CTkButton(self.process_frame, image=self.add_btn_image2, text="", width=90, height=35, fg_color="#b1ddf0", bg_color="#b1ddf0", corner_radius=0, command=self.stop_reading)																																	   
+        self.green_LED = ctk.CTkLabel(self.process_frame, image=self.add_btn_image4, text="", width=35, height=35, fg_color="#b1ddf0", bg_color="#b1ddf0", corner_radius=0)
+        self.red_LED = ctk.CTkLabel(self.process_frame, image=self.add_btn_image5, text="", width=35, height=35, fg_color="#b1ddf0", bg_color="#b1ddf0", corner_radius=0)
         
         # setup the drop option menu
         self.DropDownMenu()
@@ -177,10 +181,10 @@ class IVWindow:
         self.label6.grid(row=0, column=2, pady=5, sticky="e")
         self.label7.grid(row=0, column=2, pady=5, sticky="w")
         
-        self.start_btn.grid(row=1, column=10, padx=5, pady=15, sticky="s")
-        self.stop_btn.grid(row=2, column=10, padx=5, sticky="n")
-        #self.home_btn.grid(row=15, column=10, sticky="n")
-        self.red_LED.grid(row=1, column=11, padx=5, pady=15, sticky="s")
+        self.process_frame.grid(row=1, column=10, rowspan=2, columnspan=2, padx=5, pady=5, sticky="s")
+        self.start_btn.grid(row=0, column=0, sticky="s") 
+        self.stop_btn.grid(row=1, column=0, sticky="s") 
+        self.red_LED.grid(row=0, column=1, sticky="e") 
 
     def return_home(self):
         self.root.destroy()
@@ -262,10 +266,10 @@ class IVWindow:
     def change_LED(self, color):
         if color == 0:
             self.green_LED.grid_remove()
-            self.red_LED.grid(row=1, column=11, padx=5, pady=15, sticky="sw")
+            self.red_LED.grid(row=0, column=1, sticky="e") 
         elif color == 1:
             self.red_LED.grid_remove()
-            self.green_LED.grid(row=1, column=11, padx=5, pady=15, sticky="sw")
+            self.green_LED.grid(row=0, column=1, sticky="e") 
 
     # current and bias voltage
     def update_label(self):   

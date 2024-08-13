@@ -1,8 +1,10 @@
 """
-Filename:   GUI_Widgets.py
-Author:     Jacob Kucinski and Kelsey Marquez
-Date:       8/8/24
-Description:
+Filename:       GUI_Widgets.py
+Author:         Jacob Kucinski and Kelsey Marquez
+Date:           8/13/24
+Description:    This file creates and publishes the measurement widgets for the
+                homepage window and also disables and enables the state of 
+                specific widgets while a process is running.
 """
 from tkinter import Label, LabelFrame, Entry, StringVar, OptionMenu, Text, Image
 import customtkinter as ctk
@@ -10,17 +12,24 @@ from PIL import Image
 
 class HomepageWidgets:
     def __init__(self, root, parent):
+        """
+        Initialization of the class.
+
+        Args:
+            root (_type_): _description_
+            parent (_type_): _description_
+        """
         self.root = root
         self.parent = parent
 
     def initialize_widgets(self, meas_gui):
         """
-        Initializes widgets needed for data.
+        Initializes widgets needed for data collection.
+
+        Args:
+            meas_gui (_type_): _description_
         """
-        # Optional graphic parameters
-        meas_gui.padx = 20
-        meas_gui.pady = 10
-        
+
         small_font = ("Helvetica", 10)
         
         # Sample rate drop-down list   ### ADJUST LATER
@@ -165,12 +174,12 @@ class HomepageWidgets:
 
     def publish(self, meas_gui):
         """
-        Method to publish widgets in the MeasGUI class.
-        """
-        # Positioning distance text box
-        #meas_gui.frame1.grid(row=10, column=4, padx=5, pady=5, sticky="nw")
-        #meas_gui.label1.grid(row=0, column=0, padx=5, pady=5)
+        Method to publish widgets for collecting data.
 
+        Args:
+            meas_gui (_type_): _description_
+        """
+        
         # Positioning sample rate menu
         meas_gui.label_sample_rate.grid(row=1, column=1, pady=10, sticky="nw")
         meas_gui.sample_rate_menu.grid(row=1, column=2) 
@@ -279,24 +288,28 @@ class HomepageWidgets:
         meas_gui.ki_label.grid(row=5, column=0)
         
     def disable_widgets(self, meas_gui):
-        '''
-        Function to disable entry widgets when we start seeking
-        Disabling:
+        """
+        Function to disable entry widgets when a process is running.
+        Disables:
             - current setpoint
             - sample rate
-            - stepper motor step size
-            - stepper motor up
-            - stepper motor down
+            - sample size
             - iv window
             - iz window
             - reset home
             - save home
-            - start btn
-            - stop btn
-        '''
+            - start tip approach 
+            - start cap approach 
+            - start feedback control 
+            - start enabling periodics
+            - stop process btn
+
+        Args:
+            meas_gui (_type_): _description_
+        """
+
         meas_gui.label3.configure(state="disabled")
         meas_gui.sample_rate_menu.configure(state="disabled")
-        #meas_gui.coarse_adjust_menu.configure(state="disabled")
         meas_gui.sample_size_entry.configure(state="disabled")
         meas_gui.acquire_iv_btn.configure(state="disabled")
         meas_gui.acquire_iz_btn.configure(state="disabled")
@@ -304,14 +317,33 @@ class HomepageWidgets:
         meas_gui.return_to_home_pos.configure(state="disabled")
         meas_gui.tip_approach_btn.configure(state="disabled")
         meas_gui.cap_approach_btn.configure(state="disabled")
-        meas_gui.enable_periodics_btn.configure(state="disabled")
         meas_gui.feedback_ctrl_btn.configure(state="disabled")
+        meas_gui.enable_periodics_btn.configure(state="disabled")
         meas_gui.stop_btn.configure(state="normal")
     
     def enable_widgets(self, meas_gui):
+        """
+        Function to disable entry widgets when a process is running.
+        Disables:
+            - current setpoint
+            - sample rate
+            - sample size
+            - iv window
+            - iz window
+            - reset home
+            - save home
+            - start tip approach 
+            - start cap approach 
+            - start feedback control 
+            - start enabling periodics
+            - stop process btn
+
+        Args:
+            meas_gui (_type_): _description_
+        """
+        
         meas_gui.label3.configure(state="normal")
         meas_gui.sample_rate_menu.configure(state="normal")
-        #meas_gui.coarse_adjust_menu.configure(state="normal")
         meas_gui.sample_size_entry.configure(state="normal")
         meas_gui.acquire_iv_btn.configure(state="normal")
         meas_gui.acquire_iz_btn.configure(state="normal")
@@ -319,6 +351,6 @@ class HomepageWidgets:
         meas_gui.return_to_home_pos.configure(state="normal")
         meas_gui.tip_approach_btn.configure(state="normal")
         meas_gui.cap_approach_btn.configure(state="normal")
-        meas_gui.enable_periodics_btn.configure(state="normal")
         meas_gui.feedback_ctrl_btn.configure(state="normal")
+        meas_gui.enable_periodics_btn.configure(state="normal")
         meas_gui.stop_btn.configure(state="disable")

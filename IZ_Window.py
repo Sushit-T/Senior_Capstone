@@ -1,8 +1,11 @@
 """
-Filename:   IZ_Window.py
-Author:     Jacob Kucinski and Kelsey Marquez
-Date:       8/8/24
-Description:
+Filename:       IZ_Window.py
+Author:         Jacob Kucinski and Kelsey Marquez
+Date:           8/13/24
+Description:    This file creates the IZ sweep window for the ZTM application.
+                It verifies communication with a COM port, saves user-inputted
+                values, and retrieves data to display a range of piezo voltage values
+                as a function of the current.
 """
 from tkinter import Label, LabelFrame, Entry, Text, SE, NE
 from tkinter import messagebox, filedialog
@@ -18,13 +21,14 @@ import time
 import csv
 
 import globals
-from SPI_Data_Ctrl import SerialCtrl
 from value_conversion import Convert
 from ztmSerialCommLibrary import ztmCMD, ztmSTATUS, usbMsgFunctions
 
+###########################################
+############# GLOBAL VARIABLES ############
 curr_data = 0
 vp_V = 0
-
+###########################################
 
 class IZWindow:
     def __init__(self, root, serial_ctrl):
@@ -38,7 +42,7 @@ class IZWindow:
 
         self.root.title("Acquire I-Z")
         self.root.config(bg="#d0cee2")
-        self.root.geometry("750x675")   # (length x width)
+        self.root.geometry("750x575")   # (length x width)
 
         # initialize data and serial control
         self.ztm_serial = usbMsgFunctions(self)
@@ -127,10 +131,11 @@ class IZWindow:
         self.add_btn_image3 = ctk.CTkImage(Image.open("Images/Start_LED.png"), size=(35,35))
         self.add_btn_image4 = ctk.CTkImage(Image.open("Images/Stop_LED.png"), size=(35,35))
         
-        self.start_btn = ctk.CTkButton(self.root, image=self.add_btn_image1, text="", width=90, height=45, fg_color="#d0cee2", bg_color="#d0cee2", corner_radius=0, command=self.start_reading)
-        self.stop_btn = ctk.CTkButton(self.root, image=self.add_btn_image2, text="", width=90, height=35, fg_color="#d0cee2", bg_color="#d0cee2", corner_radius=0, command=self.stop_reading)
-        self.green_LED = ctk.CTkLabel(self.root, image=self.add_btn_image3, text="", width=35, height=35, fg_color="#d0cee2", bg_color="#d0cee2", corner_radius=0)
-        self.red_LED = ctk.CTkLabel(self.root, image=self.add_btn_image4, text="", width=35, height=35, fg_color="#d0cee2", bg_color="#d0cee2", corner_radius=0)
+        self.process_frame = LabelFrame(self.root, text="Start/Stop Process", padx=5, pady=5, bg="#d0cee2")
+        self.start_btn = ctk.CTkButton(self.process_frame, image=self.add_btn_image1, text="", width=90, height=45, fg_color="#d0cee2", bg_color="#d0cee2", corner_radius=0, command=self.start_reading)
+        self.stop_btn = ctk.CTkButton(self.process_frame, image=self.add_btn_image2, text="", width=90, height=35, fg_color="#d0cee2", bg_color="#d0cee2", corner_radius=0, command=self.stop_reading)
+        self.green_LED = ctk.CTkLabel(self.process_frame, image=self.add_btn_image3, text="", width=35, height=35, fg_color="#d0cee2", bg_color="#d0cee2", corner_radius=0)
+        self.red_LED = ctk.CTkLabel(self.process_frame, image=self.add_btn_image4, text="", width=35, height=35, fg_color="#d0cee2", bg_color="#d0cee2", corner_radius=0)
 
         # put on the grid all the elements
         self.publish_meas_widgets()
@@ -166,12 +171,11 @@ class IZWindow:
         self.label7.grid(row=0, column=2, pady=5, sticky="e")
         self.label8.grid(row=0, column=2, pady=5, sticky="w")
         
-        # Positioning the file drop-down menu
-        #self.drop_menu.grid(row=0, column=0, padx=self.padx, pady=self.pady)
-
-        self.start_btn.grid(row=1, column=10, padx=5, pady=15, sticky="s")
-        self.stop_btn.grid(row=2, column=10, padx=5, sticky="n")
-        self.red_LED.grid(row=1, column=11, padx=5, pady=15, sticky="sw")
+        # Start/stop process
+        self.process_frame.grid(row=1, column=10, padx=5, pady=15, sticky="s")
+        self.start_btn.grid(row=0, column=0, padx=5, pady=5, sticky="s") 
+        self.stop_btn.grid(row=1, column=0, padx=5, pady=5, sticky="s") 
+        self.red_LED.grid(row=0, column=1, padx=5, pady=5, sticky="e") 
 
     def init_parameters(self):
         self.min_voltage = None
@@ -347,10 +351,10 @@ class IZWindow:
     def change_LED(self, color):
         if color == 0:
             self.green_LED.grid_remove()
-            self.red_LED.grid(row=1, column=11, padx=5, pady=15, sticky="sw")
+            self.red_LED.grid(row=0, column=1, padx=5, pady=5, sticky="e") 
         elif color == 1:
             self.red_LED.grid_remove()
-            self.green_LED.grid(row=1, column=11, padx=5, pady=15, sticky="sw")
+            self.green_LED.grid(row=0, column=1, padx=5, pady=5, sticky="e") 
 
     def send_msg_retry(self, port, msg_type, cmd, status, status_response, *params, max_attempts=globals.MAX_ATTEMPTS):
         """
