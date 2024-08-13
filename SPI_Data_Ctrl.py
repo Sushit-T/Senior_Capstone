@@ -1,8 +1,11 @@
 """
-Filename:   SPI_Data_Ctrl.py
-Author:     Jacob Kucinski and Kelsey Marquez
-Date:       8/8/24
-Description:
+Filename:       SPI_Data_Ctrl.py
+Author:         Jacob Kucinski and Kelsey Marquez
+Date:           8/13/24
+Description:    This file establishes serial communication between the PC 
+                and the ZTM controller through a COM port. It starts and 
+                stops the threads used for communication, as well as reads 
+                bytes from the ZTM controller. 
 """
 import serial
 import threading

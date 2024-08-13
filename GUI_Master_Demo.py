@@ -1,8 +1,13 @@
 """
-Filename:   GUI_Master_Demo.py
-Author:     Sean Follo, Jacob Kucinski, Kelsey Marquez, & Dustin Matthews
-Date:       8/13/24
-Description:
+Filename:       GUI_Master_Demo.py
+Author:         Sean Follo, Jacob Kucinski, Kelsey Marquez, & Dustin Matthews
+Date:           8/13/24
+Description:    This is the functionality for the homepage window of the ZTM application.
+                It creates the processes allow the user to connect to a COM port for 
+                serial communication, save user-inputted values, display measurements
+                sent by the ZTM controller, and run algorithms needed for the ZTM to 
+                reach tunneling current.
+
 """
 from tkinter import Label, LabelFrame, Button, StringVar, OptionMenu, END
 from tkinter import messagebox 
@@ -121,6 +126,8 @@ class RootGUI:
         """
         Opens the serial read thread and enables the start of periodic data reading.
         """
+        globals.STOP_ALL_FLAG = 0
+        
         if self.serial_ctrl:
             if(TUNN_APPR_FLAG):
                 self.meas_gui.tunneling_approach()
@@ -134,6 +141,8 @@ class RootGUI:
         """
         Disables the reading of periodic data in a background thread.
         """
+        globals.STOP_ALL_FLAG = 1
+        
         if PERIODICS_FLAG:
             def stop_reading_task():
                 # Clear buffer
@@ -356,6 +365,15 @@ class MeasGUI:
         # Local variables for stepper motor adjusting
         self.step_up    = 0
         self.step_down  = 0
+
+        self.kp_label.delete(0, END)
+        self.kp_label.insert(0, str(globals.Kp))
+        
+        self.kd_label.delete(0, END)
+        self.kd_label.insert(0, str(globals.Kd))
+        
+        self.ki_label.delete(0, END)
+        self.ki_label.insert(0, str(globals.Ki))
         
         # Initialize measurement widgets
         self.update_label()
@@ -369,10 +387,10 @@ class MeasGUI:
         new_window = ctk.CTkToplevel(self.root)
         IVWindow(new_window, self.parent.serial_ctrl)
         new_window.protocol("WM_DELETE_WINDOW", lambda: self.on_closing(new_window))
-        
-        # Disable main window
-        self.root.attributes("-disabled", True)
 
+        # Disable main window
+        #self.root.attributes("-disabled", True)
+            
     def open_iz_window(self):
         """
         Method to open the I-Z Sweep window when the "Acquire I-Z" button is clicked.
@@ -383,7 +401,7 @@ class MeasGUI:
         new_window.protocol("WM_DELETE_WINDOW", lambda: self.on_closing(new_window))
         
         # Disable main window
-        self.root.attributes("-disabled", True)
+        #self.root.attributes("-disabled", True)
 
     def on_closing(self, window):
         """
@@ -1249,9 +1267,23 @@ class MeasGUI:
         Args:
             _ (_type_, optional): Defaults to None.
         """
-        self.root.focus()
-        globals.Kp = float(self.kp_label.get())
-        print(f"Saved Kp: {globals.Kp}")
+        if self.check_connection():
+            self.root.focus()
+            return
+        else:
+            self.root.focus()
+            try:
+                newKp = self.get_float_value(self.kp_label, globals.Kp, "Kp")
+                print(f"Saved Kp: {newKp}")
+                self.kp_label.delete(0, END)
+                self.kp_label.insert(0, newKp)
+                globals.Kp = newKp
+                return True
+            except ValueError:
+                self.root.focus()
+                self.kp_label.delete(0, END)
+                self.kp_label.insert(0, newKp)
+                return 
 
     def saveKd(self, _=None):
         """
@@ -1260,9 +1292,23 @@ class MeasGUI:
         Args:
             _ (_type_, optional): Defaults to None.
         """
-        self.root.focus()
-        globals.Kd = float(self.kd_label.get())
-        print(f"Saved Kd: {globals.Kd}")
+        if self.check_connection():
+            self.root.focus()
+            return
+        else:
+            self.root.focus()
+            try:
+                newKd = self.get_float_value(self.kd_label, globals.Kd, "Kd")
+                print(f"Saved Kd: {newKd}")
+                self.kd_label.delete(0, END)
+                self.kd_label.insert(0, newKd)
+                globals.Kd = newKd
+                return True
+            except ValueError:
+                self.root.focus()
+                self.kd_label.delete(0, END)
+                self.kd_label.insert(0, newKd)
+                return 
 
     def saveKi(self, _=None):
         """
@@ -1271,9 +1317,23 @@ class MeasGUI:
         Args:
             _ (_type_, optional): Defaults to None.
         """
-        self.root.focus()
-        globals.Ki = float(self.ki_label.get())
-        print(f"Saved Ki: {globals.Ki}")
+        if self.check_connection():
+            self.root.focus()
+            return
+        else:
+            self.root.focus()
+            try:
+                newKi = self.get_float_value(self.ki_label, globals.Ki, "Ki")
+                print(f"Saved Ki: {newKi}")
+                self.ki_label.delete(0, END)
+                self.ki_label.insert(0, newKi)
+                globals.Ki = newKi
+                return True
+            except ValueError:
+                self.root.focus()
+                self.ki_label.delete(0, END)
+                self.ki_label.insert(0, newKi)
+                return 
 
     def savePiezoValue(self, _=None):         
         """
@@ -1810,15 +1870,6 @@ class MeasGUI:
         curr_data += self.curr_offset
         self.label2.configure(text=f"{curr_data:.4f} nA")
         self.label12.configure(text=f"{vp_V:.5f} ")
-        
-        self.kp_label.delete(0, END)
-        self.kp_label.insert(0, str(globals.Kp))
-        
-        self.kd_label.delete(0, END)
-        self.kd_label.insert(0, str(globals.Kd))
-        
-        self.ki_label.delete(0, END)
-        self.ki_label.insert(0, str(globals.Ki))
 
     def save_notes(self, _=None):
         """

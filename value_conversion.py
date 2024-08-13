@@ -1,9 +1,12 @@
 """
-Filename:   value_conversion.py
-Author:     Sean Follo
-Date:       8/8/24
-Description:
+Filename:       value_conversion.py
+Author:         Sean Follo
+Date:           8/8/24
+Description:    This file is used to convert current, bias voltage, or piezo
+                voltage to a readable format for the ZTM application, or formats 
+                it into a writable format to the ZTM controller.
 """
+
 class Convert:
     def get_curr_float(curr_int):
         '''

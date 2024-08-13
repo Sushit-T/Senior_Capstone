@@ -1,7 +1,7 @@
 """
 Filename:   globals.py
 Author:     Jacob Kucinski and Kelsey Marquez
-Date:       8/8/24
+Date:       8/13/24
 Description:
 """
 
@@ -148,3 +148,8 @@ ROLLOVER_GRAPH_TIME = 10.0
 BAUD RATE
 """
 BAUDRATE = 460800
+
+"""
+STOP PROCESS ACROSS WINDOWS
+"""
+STOP_ALL_FLAG = 1

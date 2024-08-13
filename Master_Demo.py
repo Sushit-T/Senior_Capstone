@@ -1,8 +1,9 @@
 """
-Filename:   Master_Demo.py
-Author:     Jacob Kucinski and Kelsey Marquez
-Date:       8/8/24
-Description:
+Filename:       Master_Demo.py
+Author:         Jacob Kucinski and Kelsey Marquez
+Date:           8/8/24
+Description:    This is the main file where the user runs the Python GUI ZTM application 
+                on.
 """
 from GUI_Master_Demo import RootGUI, MeasGUI, GraphGUI, ComGUI
 

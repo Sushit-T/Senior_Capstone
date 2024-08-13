@@ -1,8 +1,12 @@
 """
-Filename:   ztmSerialCommLibrary.py
-Author:     Dustin Matthews
-Date:       8/8/24
-Description:
+Filename:       ztmSerialCommLibrary.py
+Author:         Dustin Matthews
+Date:           8/8/24
+Description:    This file was created to communicate to the ZTM controller
+                via custom-made messages. The format creates a message header
+                with the message type byte, command byte, then status byte. The
+                rest of the bytes contained in the message depend on what is
+                being done.
 """
 from enum import Enum
 import struct
@@ -17,50 +21,50 @@ padByte = [0x00]
 ###########################################
 
 class ztmCMD(Enum): 
-    CMD_CLR	, \
-    CMD_SET_VBIAS,   \
-    CMD_SET_ADC_SAMPLE_RATE	,   \
-    CMD_SET_ADC_SAMPLE_SIZE,    \
-    CMD_PERIODIC_DATA_ENABLE	,   \
-    CMD_PERIODIC_DATA_DISABLE	,   \
-    CMD_REQ_DATA	,   \
-    CMD_REQ_STEP_COUNT	,   \
-    CMD_STEPPER_ADJ	,   \
-    CMD_PIEZO_ADJ	,   \
-    CMD_VBIAS_SET_SINE	,   \
-    CMD_VBIAS_STOP_SINE	,   \
-    CMD_REQ_FFT_DATA	,   \
-    CMD_RETURN_TIP_HOME	,   \
-    CMD_STEPPER_RESET_HOME_POSITION	,   \
-    CMD_ABORT	,   \
-    CMD_ADC_CAL_MODE	,   \
-    CMD_ADC_CAL_LOAD_CURR	,   \
-    CMD_ADC_CAL_MEAS_GND	,   \
-    CMD_ADC_CAL_MEAS_TEST_CURR	,   \
-    CMD_ADC_CAL_STOP	,   \
-    CMD_DAC_CAL_MODE_VBIAS	,   \
-    CMD_DAC_CAL_MODE_VPZO	,   \
-    CMD_DAC_CAL_SET_0V	,   \
-    CMD_DAC_CAL_STORE_0V	,   \
-    CMD_DAC_CAL_SET_MID_SCALE	,   \
-    CMD_DAC_CAL_STORE_MID_SCALE	,   \
-    CMD_DAC_CAL_CHECK, \
+    CMD_CLR	,                           \
+    CMD_SET_VBIAS,                      \
+    CMD_SET_ADC_SAMPLE_RATE	,           \
+    CMD_SET_ADC_SAMPLE_SIZE,            \
+    CMD_PERIODIC_DATA_ENABLE,           \
+    CMD_PERIODIC_DATA_DISABLE,          \
+    CMD_REQ_DATA,                       \
+    CMD_REQ_STEP_COUNT,                 \
+    CMD_STEPPER_ADJ,                    \
+    CMD_PIEZO_ADJ,                      \
+    CMD_VBIAS_SET_SINE,                 \
+    CMD_VBIAS_STOP_SINE,                \
+    CMD_REQ_FFT_DATA,                   \
+    CMD_RETURN_TIP_HOME,                \
+    CMD_STEPPER_RESET_HOME_POSITION,    \
+    CMD_ABORT,                          \
+    CMD_ADC_CAL_MODE,                   \
+    CMD_ADC_CAL_LOAD_CURR,              \
+    CMD_ADC_CAL_MEAS_GND,               \
+    CMD_ADC_CAL_MEAS_TEST_CURR,         \
+    CMD_ADC_CAL_STOP,                   \
+    CMD_DAC_CAL_MODE_VBIAS,             \
+    CMD_DAC_CAL_MODE_VPZO,              \
+    CMD_DAC_CAL_SET_0V,                 \
+    CMD_DAC_CAL_STORE_0V,               \
+    CMD_DAC_CAL_SET_MID_SCALE,          \
+    CMD_DAC_CAL_STORE_MID_SCALE,        \
+    CMD_DAC_CAL_CHECK,                  \
     CMD_DAC_CAL_STOP = range(0 , 29)
 
 class ztmSTATUS(Enum):
-    STATUS_ACK,\
-    STATUS_NACK,\
-    STATUS_DONE,\
-    STATUS_FAIL,\
-    STATUS_RESEND,\
-    STATUS_OVERCURRENT,\
-    STATUS_CLR,\
-    STATUS_RDY,\
-    STATUS_BUSY,\
-    STATUS_ERROR,\
-    STATUS_STEP_COUNT,\
+    STATUS_ACK,         \
+    STATUS_NACK,        \
+    STATUS_DONE,        \
+    STATUS_FAIL,        \
+    STATUS_RESEND,      \
+    STATUS_OVERCURRENT, \
+    STATUS_CLR,         \
+    STATUS_RDY,         \
+    STATUS_BUSY,        \
+    STATUS_ERROR,       \
+    STATUS_STEP_COUNT,  \
     STATUS_MEASUREMENTS,\
-    STATUS_FFT_DATA,\
+    STATUS_FFT_DATA,    \
     STATUS_TIP_CRASHED = range(0 , 14)
 
 class usbMsgFunctions:
