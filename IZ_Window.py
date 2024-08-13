@@ -390,7 +390,7 @@ class IZWindow:
                 raise ValueError(f"Unsupported message type: {msg_type}")
             
             # returns 11 bytes of payload FALSE or byte response
-            testMsg = self.serial_ctrl.ztmGetMsg(port)
+            testMsg = self.serial_ctrl.ztmGetMsg()
             
             testMsg_hex = [b for b in testMsg]
             

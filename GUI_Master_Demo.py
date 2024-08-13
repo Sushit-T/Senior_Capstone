@@ -716,17 +716,19 @@ class MeasGUI:
                     
                     if success:
                         # Immediately step back and return if current >= target
-                        if(curr_data >= curr_setpoint):
-                            adjust_success = self.send_msg_retry(port, globals.MSG_D, ztmCMD.CMD_STEPPER_ADJ.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_DONE.value, globals.EIGHTH_STEP, globals.DIR_UP, globals.NUM_STEPS)
-                            self.piezo_full_retract()
-                            if adjust_success:
-                                tunneling_steps -= globals.INC_EIGHT
-                                TUNN_APPROACH_ESCAPE_FLG = 1
+                        if((curr_data * curr_data) >= (curr_setpoint * curr_setpoint)):
+                            Vpiezo_temp = vpiezo_tip
+                            TUNN_APPROACH_ESCAPE_FLG = 1
+                            # adjust_success = self.send_msg_retry(port, globals.MSG_D, ztmCMD.CMD_STEPPER_ADJ.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_DONE.value, globals.EIGHTH_STEP, globals.DIR_UP, globals.NUM_STEPS)
+                            # self.piezo_full_retract()
+                            # if adjust_success:
+                            #     tunneling_steps -= globals.INC_EIGHT
+                            #     TUNN_APPROACH_ESCAPE_FLG = 1
                                 
-                                break
+                            break
                                 #return 1, curr_data, vb_V, vp_V, tunneling_steps
-                            else:
-                                messagebox.showerror("ERROR", "Error. Unable to adjust the stepper motor.")
+                            # else:
+                            #     messagebox.showerror("ERROR", "Error. Unable to adjust the stepper motor.")
                         else:       
                             # delay stepping down by stepDownThreshold samples                   
                             #if(stepDownDelayCounter == stepDownThreshold-1):
@@ -737,7 +739,7 @@ class MeasGUI:
                         self.parent.graph_gui.update_graph('tunneling_approach')
                 STOP_BTN_FLAG = 0
                 plt.ioff()
-                messagebox.showinfo("TUNNELING APPROACH", f"Success. The tunneling approach has ended. Received {curr_data} nA at Piezo Voltage of {vpiezo_tip} V. You can now enter the feedback controller.")
+                messagebox.showinfo("TUNNELING APPROACH", f"Success. The tunneling approach has ended. Received {curr_data} nA at Piezo Voltage of {Vpiezo_temp} V.")
                 #self.feedback_ctrl_btn.configure(state="normal")
                 self.stop_leds()
                 self.initializer.enable_widgets(self)
@@ -786,10 +788,6 @@ class MeasGUI:
             errors = [0 for _ in range(3)]
             avg_error = 0
             error_index = 0
-
-            #if FEEDBACK_CTRL_FLAG == 0:
-            #    messagebox.showerror("ERROR", "Error. Tunneling current has not been found yet.")
-            #    return 
             
             port = self.parent.serial_ctrl.serial_port
             
@@ -823,27 +821,22 @@ class MeasGUI:
                     success = self.send_msg_retry(port, globals.MSG_C, ztmCMD.CMD_REQ_DATA.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_MEASUREMENTS.value)
                     
                     if success:
-                        error = curr_setpoint - curr_data
-                        avg_error += ((error - errors[error_index]) / 3)
-                        errors[error_index] = error
-                        error_index = (error_index + 1) % 3
                         # If no tunneling current is detected, step down with a constant step size
-                        if(curr_data < globals.CONTROLLER_MIN_CURR):
+                        if((curr_data * curr_data) < (globals.CONTROLLER_MIN_CURR * globals.CONTROLLER_MIN_CURR)):
                             vpiezo_tip, tunneling_steps = self.auto_move_tip(tunneling_steps, globals.CONTROLLER_CONST_STEP_SZ_NM, globals.DIR_DOWN)
                             sum = 0
-                            last_output = 0
                         # Use feedback control to maintain target current
                         else:
-                            sum += avg_error * globals.Ts
-                            dist = avg_error * globals.Kp + globals.Ki * sum + (globals.Kd * (avg_error - last_error) / globals.Ts)
-                            last_error = avg_error
-                            #print(f"Vpzo = {vpiezo_tip}, dist = {dist}, error = {error}, steps = {tunneling_steps}") ## DEBUG
-                            if(dist < 0):
-                                vpiezo_tip, tunneling_steps = self.auto_move_tip(tunneling_steps, -dist, globals.DIR_UP)               
-                                #time.sleep(0.005)
+                            error = curr_setpoint - curr_data
+                            if(curr_setpoint < 0.0):
+                                error = -error
+                            sum += error * globals.Ts # Calculates integral term
+                            controller_output = globals.Kp * error + globals.Ki * sum + (globals.Kd * (error - last_error) / globals.Ts)
+                            last_error = error
+                            if(controller_output < 0):
+                                vpiezo_tip, tunneling_steps = self.auto_move_tip(tunneling_steps, -controller_output, globals.DIR_UP)               
                             else:
-                                vpiezo_tip, tunneling_steps = self.auto_move_tip(tunneling_steps, dist, globals.DIR_DOWN)
-                                #time.sleep(0.005)
+                                vpiezo_tip, tunneling_steps = self.auto_move_tip(tunneling_steps, controller_output, globals.DIR_DOWN)
 
                         self.update_label()
                         self.parent.graph_gui.update_graph('feedback_control')
@@ -1332,7 +1325,7 @@ class MeasGUI:
             return
         else:
             curr_setpoint = self.get_float_value(self.label3, 0.0, "current setpoint")
-            if 0.1 <= curr_setpoint <= 10:
+            if (0.01 <= (curr_setpoint * curr_setpoint) <= 100):
                 return True
             else:
                 self.label3.delete(0,END)
@@ -1828,7 +1821,7 @@ class GraphGUI:
     """
     Function to initialize the data arrays and the graphical display.
     """
-    def __init__(self, root, meas_gui, max_data_points=10000):
+    def __init__(self, root, meas_gui, max_data_points=15000):
         """
         This initializes the graph widget for the three different processes.
         
@@ -1856,9 +1849,10 @@ class GraphGUI:
        
         # Initializes graphical data
         self.max_data_points = max_data_points
-        self.y_data = [0.0 for _ in range(max_data_points)]
-        self.x_data = [None] * self.max_data_points
-        self.time_data = [None] * self.max_data_points
+        self.y_data = []
+        self.x_data = []
+        self.time_data = []
+        self.graph_index = 0
         self.line, = self.ax.plot([], [], 'r-')
 
         # Create a canvas to embed the figure in Tkinter
@@ -1903,22 +1897,23 @@ class GraphGUI:
         global TUNN_APPR_FLAG
         global TUNN_APPROACH_ESCAPE_FLG
         global FEEDBACK_CTRL_FLAG
-        global graph_index
         rollover_time = globals.ROLLOVER_GRAPH_TIME
 
         # Update data with next data points
-        self.y_data[graph_index] = curr_data
-        time_now = datetime.datetime.now()
-        # Append current time to x axis on graph
-        self.x_data[graph_index] = time_now
-        
-        # Append time to include milliseconds for exported data
-        formatted_time = time_now.strftime('%H:%M:%S.%f')[:-3]
-        self.time_data[graph_index] = formatted_time
-
-        # Update graph_index
-        graph_index = ((graph_index + 1) % self.max_data_points)
-
+        if(len(self.y_data) < self.max_data_points):
+            self.y_data.append(curr_data)
+            self.x_data.append(datetime.datetime.now())
+            time_now = datetime.datetime.now()
+            formatted_time = time_now.strftime('%H:%M:%S.%f')[:-3]
+            self.time_data.append(formatted_time)
+        else:
+            self.y_data[self.graph_index] = curr_data
+            self.x_data[self.graph_index] = datetime.datetime.now()
+            time_now = datetime.datetime.now()
+            formatted_time = time_now.strftime('%H:%M:%S.%f')[:-3]
+            self.time_data[self.graph_index] = formatted_time
+            # Update self.graph_index
+        self.graph_index = ((self.graph_index + 1) % self.max_data_points)
         
         # Write every data point to the cache file for the specified process
         #self.write_to_cache(process, formatted_time, curr_data)
@@ -1948,7 +1943,7 @@ class GraphGUI:
                 update_interval = 1
                 self.line.set_data(self.x_data, self.y_data)
                 #TUNN_APPROACH_ESCAPE_FLG = 0
-            if (graph_index % update_interval == 0) and not TUNN_APPROACH_ESCAPE_FLG: # Calculate the average of y_data
+            if (self.graph_index % update_interval == 0) and not TUNN_APPROACH_ESCAPE_FLG: # Calculate the average of y_data
                 # self.avg_y = sum(self.y_data) / len(self.y_data) if len(self.y_data) > 0 else 0
                 # Create a constant y-value list with the average value
                 # self.avg_y_data = [self.avg_y] * len(self.x_data)
@@ -1963,20 +1958,20 @@ class GraphGUI:
         time_interval = datetime.timedelta(seconds=30)
         min_time = datetime.datetime.now() - time_interval
             
-        if graph_index % update_interval == 0:
+        if self.graph_index % update_interval == 0:
             if not TUNN_APPR_FLAG:
                 self.line.set_data(self.x_data, self.y_data)
-                filtered_y_data = [y for x, y in zip(self.x_data, self.y_data) if x >= min_time]
-            else:
-                filtered_y_data = [y for x, y in zip(self.x_data, self.y_data) if x >= min_time]
+            #     filtered_y_data = [y for x, y in zip(self.x_data, self.y_data) if x >= min_time]
+            # else:
+            #     filtered_y_data = [y for x, y in zip(self.x_data, self.y_data) if x >= min_time]
 
             # Calculate the min and max y-values in the filtered data
-            if filtered_y_data:
-                min_y = min(filtered_y_data)
-                max_y = max(filtered_y_data)
-            else:
-                min_y = min(self.y_data)
-                max_y = max(self.y_data)
+            # if filtered_y_data:
+            #     min_y = min(filtered_y_data)
+            #     max_y = max(filtered_y_data)
+            # else:
+            min_y = min(self.y_data)
+            max_y = max(self.y_data)
             
             # Avoid singular transformation
             if min_y == max_y:
@@ -1996,16 +1991,16 @@ class GraphGUI:
         """
         Resets the visual graph and clears the data points.
         """
-        global graph_index
         self.ax.clear()
         self.ax.set_xlabel('Time (s)')
         self.ax.set_ylabel('Current (nA)')
-        self.y_data = [0.0 for _ in range(self.max_data_points)]
-        self.x_data = [datetime.datetime.now() for _ in range(self.max_data_points)]
+        self.y_data = []
+        self.x_data = []
+        self.time_data = []
         self.line, = self.ax.plot([], [], 'r-')
         self.canvas.draw()
         self.canvas.flush_events()
-        graph_index = 0
+        self.graph_index = 0
 
 
 if __name__ == "__main__":
