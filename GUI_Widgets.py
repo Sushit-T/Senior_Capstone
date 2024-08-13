@@ -21,65 +21,20 @@ class HomepageWidgets:
         meas_gui.padx = 20
         meas_gui.pady = 10
         
+        small_font = ("Helvetica", 10)
+        
         # Sample rate drop-down list   ### ADJUST LATER
-        meas_gui.frame8 = LabelFrame(meas_gui.root, text="", padx=5, pady=5, bg="#ADD8E6")
-        meas_gui.label_sample_rate = Label(meas_gui.frame8, text="Sample Rate: ", bg="#ADD8E6", width=11, anchor="w")
+        meas_gui.sample_rate = LabelFrame(meas_gui.root, text="", padx=5, pady=5, bg="#ADD8E6")
+        meas_gui.label_sample_rate = Label(meas_gui.sample_rate, text="Sample Rate: ", bg="#ADD8E6", width=11, anchor="w")
         meas_gui.sample_rate_var = StringVar()
         meas_gui.sample_rate_var.set("-")
-        meas_gui.sample_rate_menu = OptionMenu(meas_gui.frame8, meas_gui.sample_rate_var, "25 kHz", "12.5 kHz", "37.5 kHz", "10 kHz", "5 kHz", command=meas_gui.saveSampleRate)  
+        meas_gui.sample_rate_menu = OptionMenu(meas_gui.sample_rate, meas_gui.sample_rate_var, "25 kHz", "12.5 kHz", "37.5 kHz", "10 kHz", "5 kHz", command=meas_gui.saveSampleRate)  
         meas_gui.sample_rate_menu.config(width=7)
         
-        meas_gui.label_sample_rate.grid(column=1, row=1)
-        meas_gui.sample_rate_menu.grid(column=2, row=1) 
-        meas_gui.frame8.grid(row=12, column=4, padx=5, pady=5, sticky="")
-        
         # Sample size user entry
-        meas_gui.sample_size = Entry(meas_gui.frame8, width=13)
-        meas_gui.sample_size_label = Label(meas_gui.frame8, text="Sample Size: ", bg="#ADD8E6", width=11, anchor="w")
-        meas_gui.sample_size.bind("<Return>", meas_gui.saveSampleSize)
-        
-        meas_gui.sample_size.grid(column=2, row=2, pady=5)
-        meas_gui.sample_size_label.grid(column=1, row=2)
-
-        # Stepper motor adjust step size
-        meas_gui.frame9 = LabelFrame(meas_gui.root, text="", padx=5, pady=5, bg="#ADD8E6")
-        meas_gui.label_coarse_adjust = Label(meas_gui.frame9, text="Step Size: ", bg="#ADD8E6", width=8, anchor="w")
-        meas_gui.coarse_adjust_var = StringVar()
-        meas_gui.coarse_adjust_var.set("-")
-        meas_gui.coarse_adjust_menu = OptionMenu(meas_gui.frame9, meas_gui.coarse_adjust_var, "Full", "Half", "Quarter", "Eighth", command=meas_gui.saveStepperMotorAdjust) 
-        meas_gui.coarse_adjust_menu.config(width=6)
-
-        meas_gui.label_coarse_adjust.grid(column=1, row=1)
-        meas_gui.coarse_adjust_menu.grid(column=1, row=2) 
-        meas_gui.frame9.grid(row=12, column=2, rowspan=2, columnspan=2, padx=5, pady=5, sticky="")
-        meas_gui.label_coarse_adjust_inc = Label(meas_gui.frame9, text="Approx. Dist", bg="#ADD8E6", width=9, anchor="w")
-
-        meas_gui.label5 = Label(meas_gui.frame9, bg="white", width=10)
-        meas_gui.label_coarse_adjust_inc.grid(column=2, row=1)
-        meas_gui.label5.grid(column=2, row=2, padx=5, pady=5)
-
-        # Vpiezo adjust step size
-        meas_gui.frame10 = LabelFrame(meas_gui.root, text="", padx=5, pady=5, bg="#d0cee2")
-        meas_gui.label_vpeizo_delta = Label(meas_gui.frame10, text="Vpiezo ΔV (V):", bg="#d0cee2", width=11, anchor="w")
-        meas_gui.label_vpeizo_delta.grid(column=1, row=1)
-        meas_gui.frame10.grid(row=7, column=2, rowspan=4, columnspan=2, padx=5, pady=5, sticky="")
-        
-        ### ADJUST LATER
-        
-        meas_gui.label_vpeizo_delta_distance = Label(meas_gui.frame10, text="Approx. Dist", bg="#d0cee2", width=9, anchor="w")
-        meas_gui.label_vpeizo_delta_distance.grid(column=2, row=1)
-        
-
-        meas_gui.label10 = Entry(meas_gui.frame10, bg="white", width=10)
-        meas_gui.label10.bind("<Return>", meas_gui.savePiezoValue)
-        meas_gui.label11 = Label(meas_gui.frame10, bg="white", width=10)
-        meas_gui.label10.grid(column=1, row=2, padx=5)
-        meas_gui.label11.grid(column=2, row=2, padx=5)
-        meas_gui.label11.bind("<Return>", meas_gui.updateVpzoDistance)
-        meas_gui.label_vpeizo_total = Label(meas_gui.frame10, text="Total Voltage", bg="#d0cee2", width=10, anchor="w")
-        meas_gui.label_vpeizo_total.grid(column=1, row=3, columnspan=2)
-        meas_gui.label12 = Label(meas_gui.frame10, bg="white", width=10)
-        meas_gui.label12.grid(column=1, row=4, columnspan=2)
+        meas_gui.sample_size = LabelFrame(meas_gui.root, text="Sample Size", padx=10, pady=2, bg="#ADD8E6")
+        meas_gui.sample_size_entry = Entry(meas_gui.sample_size, bg="white", width=26)
+        meas_gui.sample_size_entry.bind("<Return>", meas_gui.saveSampleSize)
 
         # distance  ### ADJUST LATER
         meas_gui.frame1 = LabelFrame(meas_gui.root, text="Distance (nm)", padx=10, pady=2, bg="gray", width=20)
@@ -116,8 +71,8 @@ class HomepageWidgets:
         # define images
         meas_gui.add_btn_image0 = ctk.CTkImage(Image.open("Images/Vpzo_Up_Btn.png"), size=(40,40))
         meas_gui.add_btn_image1 = ctk.CTkImage(Image.open("Images/Vpzo_Down_Btn.png"), size=(40,40))
-        meas_gui.add_btn_image2 = ctk.CTkImage(Image.open("Images/Fine_Adjust_Btn_Up.png"), size=(40,40))
-        meas_gui.add_btn_image3 = ctk.CTkImage(Image.open("Images/Fine_Adjust_Btn_Down.png"), size=(40,40))
+        meas_gui.add_btn_image2 = ctk.CTkImage(Image.open("Images/Fine_Adjust_Btn_Up.png"), size=(50,45))
+        meas_gui.add_btn_image3 = ctk.CTkImage(Image.open("Images/Fine_Adjust_Btn_Down.png"), size=(50,45))
         meas_gui.add_btn_image4 = ctk.CTkImage(Image.open("Images/Start_Tip_Approach.png"), size=(100,35))
         meas_gui.add_btn_image5 = ctk.CTkImage(Image.open("Images/Stop_Btn.png"), size=(90,35))
         meas_gui.add_btn_image6 = ctk.CTkImage(Image.open("Images/Acquire_IV.png"), size=(100,35))
@@ -154,13 +109,45 @@ class HomepageWidgets:
         
         # Piezo adjust frame and buttons
         meas_gui.vpiezo_btn_frame = LabelFrame(meas_gui.root, text="Piezo Tip Adjust", padx=10, pady=5, bg="#eeeeee")
-        meas_gui.vpiezo_adjust_btn_up = ctk.CTkButton(master=meas_gui.vpiezo_btn_frame, image=meas_gui.add_btn_image0, text = "", width=40, height=40, compound="bottom", fg_color="#eeeeee", bg_color="#eeeeee", corner_radius=0, command=meas_gui.piezo_inc)
-        meas_gui.vpiezo_adjust_btn_down = ctk.CTkButton(master=meas_gui.vpiezo_btn_frame, image=meas_gui.add_btn_image1, text="", width=40, height=40, compound="bottom", fg_color="#eeeeee", bg_color="#eeeeee", corner_radius=0, command=meas_gui.piezo_dec)
+        meas_gui.vpiezo_adjust_btn_up = ctk.CTkButton(master=meas_gui.vpiezo_btn_frame, image=meas_gui.add_btn_image0, text = "-Δ Vpiezo", text_color="black", font=small_font, width=40, height=40, compound="bottom", fg_color="#eeeeee", bg_color="#eeeeee", corner_radius=0, command=meas_gui.piezo_inc)
+        meas_gui.vpiezo_adjust_btn_down = ctk.CTkButton(master=meas_gui.vpiezo_btn_frame, image=meas_gui.add_btn_image1, text="+Δ Vpiezo", text_color="black", font=small_font, width=40, height=40, compound="top", fg_color="#eeeeee", bg_color="#eeeeee", corner_radius=0, command=meas_gui.piezo_dec)
+
+        # Vpiezo adjust step size
+        meas_gui.frame10 = LabelFrame(meas_gui.vpiezo_btn_frame, text="", padx=5, pady=5, bg="#d0cee2")
+        meas_gui.label_vpeizo_delta = Label(meas_gui.frame10, text="Vpiezo ΔV (V):", bg="#d0cee2", width=11, anchor="w")
+
+        ### ADJUST LATER
+        meas_gui.label_vpeizo_delta_distance = Label(meas_gui.frame10, text="Approx. Dist", bg="#d0cee2", width=9, anchor="w")
+        meas_gui.label10 = Entry(meas_gui.frame10, bg="white", width=10)
+        meas_gui.label10.bind("<Return>", meas_gui.savePiezoValue)
+        meas_gui.label11 = Label(meas_gui.frame10, bg="white", width=10)
+        meas_gui.label_vpeizo_total = Label(meas_gui.frame10, text="Total Voltage", bg="#d0cee2", width=10, anchor="w")
+        meas_gui.label12 = Label(meas_gui.frame10, bg="white", width=10)
         
         # Stepper motor adjust frame and buttons
         meas_gui.fine_adjust_frame = LabelFrame(meas_gui.root, text="Stepper Motor", padx=10, pady=5, bg="#eeeeee")
-        meas_gui.fine_adjust_btn_up = ctk.CTkButton(master=meas_gui.fine_adjust_frame, image=meas_gui.add_btn_image2, text = "", width=40, height=40, compound="bottom", fg_color="#eeeeee", bg_color="#eeeeee", corner_radius=0, command=meas_gui.stepper_motor_up)
-        meas_gui.fine_adjust_btn_down = ctk.CTkButton(master=meas_gui.fine_adjust_frame, image=meas_gui.add_btn_image3, text="", width=40, height=40, compound="bottom", fg_color="#eeeeee", bg_color="#eeeeee", corner_radius=0, command=meas_gui.stepper_motor_down)
+        meas_gui.fine_adjust_btn_up = ctk.CTkButton(master=meas_gui.fine_adjust_frame, image=meas_gui.add_btn_image2, text = "Retract", text_color="black", font=small_font, width=50, height=45, compound="bottom", fg_color="#eeeeee", bg_color="#eeeeee", corner_radius=0, command=meas_gui.stepper_motor_up)
+        meas_gui.fine_adjust_btn_down = ctk.CTkButton(master=meas_gui.fine_adjust_frame, image=meas_gui.add_btn_image3, text="Extend", text_color="black", font=small_font, width=50, height=45, compound="top", fg_color="#eeeeee", bg_color="#eeeeee", corner_radius=0, command=meas_gui.stepper_motor_down)
+
+        # Stepper motor adjust step size
+        meas_gui.frame9 = LabelFrame(meas_gui.fine_adjust_frame, text="", padx=5, pady=5, bg="#ADD8E6")
+        meas_gui.label_coarse_adjust = Label(meas_gui.frame9, text="Step Size: ", bg="#ADD8E6", width=10, anchor="w")
+        meas_gui.coarse_adjust_var = StringVar()
+        meas_gui.coarse_adjust_var.set("-")
+        meas_gui.coarse_adjust_menu = OptionMenu(meas_gui.frame9, meas_gui.coarse_adjust_var, "Full", "Half", "Quarter", "Eighth", command=meas_gui.saveStepperMotorAdjust) 
+        meas_gui.coarse_adjust_menu.config(width=6)
+        meas_gui.label_coarse_adjust_inc = Label(meas_gui.frame9, text="Approx. Dist", bg="#ADD8E6", width=10, anchor="w")
+        meas_gui.label5 = Label(meas_gui.frame9, bg="white", width=10)
+        
+        # Cache data logging
+        meas_gui.cache_data_var = ctk.BooleanVar()
+        meas_gui.cache_data_checkbtn = ctk.CTkCheckBox(meas_gui.start_stop_frame, text="Cache Data", text_color="black", variable=meas_gui.cache_data_var, onvalue=True, offvalue=False, command=meas_gui.cache_data)
+
+        # Load the image using CTkImage
+        meas_gui.warning_image = ctk.CTkImage(Image.open("Images/warning.png"), size=(200, 175))
+
+        # Create a CTkLabel and set the image
+        meas_gui.warning_label = ctk.CTkLabel(meas_gui.root, image=meas_gui.warning_image,  text="")
 
         # Tip controller - DELETE LATER
         meas_gui.kp_frame = LabelFrame(meas_gui.root, text="Kp", padx=10, pady=2, bg="#ADD8E6")
@@ -179,72 +166,114 @@ class HomepageWidgets:
         """
         Method to publish widgets in the MeasGUI class.
         """
-        # positioning distance text box
-        meas_gui.frame1.grid(row=10, column=4, padx=5, pady=5, sticky="nw")
-        meas_gui.label1.grid(row=0, column=0, padx=5, pady=5)
+        # Positioning distance text box
+        #meas_gui.frame1.grid(row=10, column=4, padx=5, pady=5, sticky="nw")
+        #meas_gui.label1.grid(row=0, column=0, padx=5, pady=5)
 
-        # positioning current text box
-        meas_gui.frame2.grid(row=10, column=5, padx=5, pady=5, sticky="nw")
-        meas_gui.label2.grid(row=0, column=1, padx=5, pady=5)   
-        
-        # positioning current setpoint text box
-        meas_gui.frame3.grid(row=11, column=4, padx=5, pady=5, sticky="w")
-        meas_gui.label3.grid(row=1, column=0, padx=5, pady=5) 
-        
-        # positioning current offset text box
-        meas_gui.frame4.grid(row=11, column=5, padx=5, pady=5, sticky="w")
-        meas_gui.label4.grid(row=1, column=1, padx=5, pady=5) 
+        # Positioning sample rate menu
+        meas_gui.label_sample_rate.grid(row=1, column=1, sticky="nw")
+        meas_gui.sample_rate_menu.grid(row=1, column=2) 
+        meas_gui.sample_rate.grid(row=12, column=4, padx=5, pady=5)
 
-        # positioning sample bias text box
-        meas_gui.frame6.grid(row=12, column=5, padx=5, pady=5, sticky="nw")
+        # Positioning sample size
+        meas_gui.sample_size.grid(row=12, column=5, pady=5, sticky="n")
+        meas_gui.sample_size_entry.grid(row=0, column=0, pady=5)
+        
+        # Positioning current text box
+        meas_gui.frame2.grid(row=10, column=4, padx=5, pady=5, sticky="nw")
+        meas_gui.label2.grid(row=0, column=0, padx=5, pady=5)   
+        
+        # Positioning current setpoint text box
+        meas_gui.frame3.grid(row=11, column=4, padx=5, pady=5, sticky="nw")
+        meas_gui.label3.grid(row=0, column=0, padx=5, pady=5) 
+        
+        # Positioning current offset text box
+        meas_gui.frame4.grid(row=10, column=5, padx=5, pady=5, sticky="nw")
+        meas_gui.label4.grid(row=0, column=0, padx=5, pady=5) 
+
+        # Positioning sample bias text box
+        meas_gui.frame6.grid(row=11, column=5, padx=5, pady=5, sticky="nw")
         meas_gui.label6.grid(row=2, column=0, padx=5, pady=5) 
 
-        # positioning the notes text box
+        # Positioning the notes text box
         meas_gui.frame7.grid(row=10, column=7, rowspan=3, pady=5, sticky="n")
         meas_gui.label7.grid(row=1, column=0, pady=5, columnspan=3, rowspan=3) 
         meas_gui.label8.grid(row=0, column=2, pady=5, sticky="e")
         meas_gui.label9.grid(row=0, column=2, pady=5, sticky="w")
 
-        # vpiezo tip fine adjust
-        meas_gui.vpiezo_btn_frame.grid(row=7, column=0, rowspan=3, columnspan=2, padx=5, sticky="e")
-        meas_gui.vpiezo_adjust_btn_up.grid(row=0, column=0, sticky="e")
-        meas_gui.vpiezo_adjust_btn_down.grid(row=1, column=0, sticky="e")
-        
-        # stepper motor adjust
-        meas_gui.fine_adjust_frame.grid(row=11, column=0, rowspan=4, columnspan=2, padx=5, sticky="e")
+        # Vpiezo tip fine adjust buttons
+        meas_gui.vpiezo_btn_frame.grid(row=2, column=1, rowspan=4, columnspan=2, padx=5, sticky="ne")
+        meas_gui.vpiezo_adjust_btn_up.grid(row=0, column=0, padx=5, sticky="e")
+        meas_gui.vpiezo_adjust_btn_down.grid(row=1, column=0, padx=5, sticky="e")
+
+        # Vpiezo frame
+        meas_gui.frame10.grid(row=0, column=1, rowspan=4, columnspan=2, padx=5, pady=5, sticky="")
+        # Vpiezo delta user entry
+        meas_gui.label10.grid(row=1, column=0, padx=5) 
+        # Vpiezo approx. distance
+        meas_gui.label11.grid(row=1, column=1, padx=5) 
+        # Vpiezo total voltage
+        meas_gui.label12.grid(row=3, column=0, columnspan=2) 
+        # Vpiezo delta label
+        meas_gui.label_vpeizo_delta.grid(row=0, column=0)
+        # Vpiezo approx. distance label
+        meas_gui.label_vpeizo_delta_distance.grid(row=0, column=1) 
+        # Vpiezo total voltage label
+        meas_gui.label_vpeizo_total.grid(row=2, column=0, columnspan=2) 
+
+        # Stepper motor adjust frame
+        meas_gui.fine_adjust_frame.grid(row=6, column=1, rowspan=4, columnspan=2, padx=5, pady=10, sticky="s")
+        # Stepper motor up button
         meas_gui.fine_adjust_btn_up.grid(row=0, column=0)
+        # Stepper motor down button
         meas_gui.fine_adjust_btn_down.grid(row=1, column=0)
+
+        # Stepper motor user input frame
+        meas_gui.frame9.grid(row=0, column=1, rowspan=2, columnspan=2, padx=5, pady=5, sticky="")
+        # Stepper motor label
+        meas_gui.label_coarse_adjust.grid(row=1, column=1)
+        # Stepper motor drop down menu
+        meas_gui.coarse_adjust_menu.grid(row=2, column=1) 
+        # Stepper motor approx. distance label
+        meas_gui.label_coarse_adjust_inc.grid(row=1, column=2)
+        # Stepper motor approx. distsance value box
+        meas_gui.label5.grid(row=2, column=2, padx=5, pady=5)
         
-        # start/stop buttons
+        # Start/stop buttons
         meas_gui.start_stop_frame.grid(row=0, column=9, columnspan=4, rowspan=4)
         meas_gui.tip_approach_btn.grid(row=0, column=0, sticky="e")
         meas_gui.cap_approach_btn.grid(row=2, column=0, sticky="e")
         meas_gui.feedback_ctrl_btn.grid(row=1, column=0, sticky="e")
         meas_gui.enable_periodics_btn.grid(row=3, column=0, sticky="e")
         meas_gui.stop_btn.grid(row=1, column=1, sticky="ne", padx=20, pady=10)
-        # led
+        meas_gui.cache_data_checkbtn.grid(row=3, column=1, padx=10, pady=5, sticky="e")
+        
+        # Stop LED (red)
         meas_gui.stop_led_btn.grid(row=0, column=1, sticky="")
 
-        # sweep windows buttons
+        # Sweep windows buttons
         meas_gui.sweep_windows_frame.grid(row=7, column=9, columnspan=4)
         meas_gui.acquire_iv_btn.grid(row=0, column=0, sticky="e")
         meas_gui.acquire_iz_btn.grid(row=0, column=1, padx=15, sticky="e")
 
-        # save home position
-        meas_gui.save_home_pos.grid(row=8, column=9, padx=10, sticky="w")
+        # Save home position
+        meas_gui.save_home_pos.grid(row=11, column=9, padx=18, sticky="w")
         
-        # reset home position
-        meas_gui.return_to_home_frame.grid(row=10, column=9, sticky="w", padx=20)
+        # Reset home position
+        meas_gui.return_to_home_frame.grid(row=10, column=9, padx=20, pady=5, sticky="sw")
         meas_gui.return_to_home_pos.grid(row=0, column=0, padx=18)
         
-        # tip controller - delete later
-        meas_gui.kp_frame.grid(row=4, column=2)
+        # Warning image
+        meas_gui.warning_label.grid(row=10, column=1, columnspan=2, rowspan=4)
+        
+        # Tip controller - delete later
+        meas_gui.kp_frame.grid(row=10, column=10)
         meas_gui.kp_label.grid(row=0, column=0)
         
-        meas_gui.kd_frame.grid(row=5, column=2)
+        meas_gui.kd_frame.grid(row=11, column=10)
         meas_gui.kd_label.grid(row=0, column=0)
         
-        meas_gui.ki_frame.grid(row=6, column=2)
+        meas_gui.ki_frame.grid(row=12, column=10)
         meas_gui.ki_label.grid(row=0, column=0)
         
     def disable_widgets(self, meas_gui):
@@ -266,7 +295,7 @@ class HomepageWidgets:
         meas_gui.label3.configure(state="disabled")
         meas_gui.sample_rate_menu.configure(state="disabled")
         #meas_gui.coarse_adjust_menu.configure(state="disabled")
-        meas_gui.sample_size.configure(state="disabled")
+        meas_gui.sample_size_entry.configure(state="disabled")
         meas_gui.acquire_iv_btn.configure(state="disabled")
         meas_gui.acquire_iz_btn.configure(state="disabled")
         meas_gui.save_home_pos.configure(state="disabled")
@@ -281,7 +310,7 @@ class HomepageWidgets:
         meas_gui.label3.configure(state="normal")
         meas_gui.sample_rate_menu.configure(state="normal")
         #meas_gui.coarse_adjust_menu.configure(state="normal")
-        meas_gui.sample_size.configure(state="normal")
+        meas_gui.sample_size_entry.configure(state="normal")
         meas_gui.acquire_iv_btn.configure(state="normal")
         meas_gui.acquire_iz_btn.configure(state="normal")
         meas_gui.save_home_pos.configure(state="normal")

@@ -27,7 +27,7 @@ curr_data = 0
 vb_V = 0
 
 class IVWindow:
-    def __init__(self, root, port):
+    def __init__(self, root, serial_ctrl):
         """
         Initialize the IVWindow class which sets up the GUI for acquiring I-V measurements.
 
@@ -36,19 +36,21 @@ class IVWindow:
             port (str or None): The serial port to which the device is connected. If None, it indicates no connection.
         """
         self.root = root
-        self.port = port
+        self.serial_ctrl = serial_ctrl
         
         # Check if a serial connection has been established when opening the window
-        if self.port == None:
+        if self.serial_ctrl.serial_port == None:
             messagebox.showerror("INVALID", f"No serial connection detected.\nConnect to USB via homepage and try again.") 
             self.root.destroy()
-            
+        
+        print(f"Port: {self.serial_ctrl.serial_port}")
+        
         self.root.title("Acquire I-V")
         self.root.config(bg="#b1ddf0")
         self.root.geometry("800x650")   # (width x length)
-        
+
         # initialize serial control
-        self.serial_ctrl = SerialCtrl(self.port, globals.BAUDRATE)
+        #self.serial_ctrl = SerialCtrl(self.port_name, globals.BAUDRATE)
         self.ztm_serial = usbMsgFunctions(self)
         
         # Initialize the widgets
@@ -56,6 +58,7 @@ class IVWindow:
         self.init_parameters()
         self.init_graph_widgets()
         self.update_label()
+        
     
     def start_reading(self):
         """
@@ -81,7 +84,7 @@ class IVWindow:
         print("Stopped reading data...")
         self.enable_widgets()
         self.STOP_BTN_FLAG = 1
-        self.serial_ctrl.stop()
+        #self.serial_ctrl.stop()
     
     '''
     Function to error check user inputs
@@ -319,14 +322,14 @@ class IVWindow:
                 break            
 
             # sending vbias to MCU, looking for a DONE status in return
-            success = self.send_msg_retry(self.port, globals.MSG_A, ztmCMD.CMD_SET_VBIAS.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_DONE.value, 0, self.vbias, 0)
+            success = self.send_msg_retry(self.serial_ctrl.serial_port, globals.MSG_A, ztmCMD.CMD_SET_VBIAS.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_DONE.value, 0, self.vbias, 0)
             if not success:
                 messagebox.showerror("INVALID", f"Could not verify communication with MCU.\nSweep process aborted.") 
                 self.sweep_finished()
                 return
             
             # sending a REQUEST_FOR_DATA command to MCU to receive current and vbias measurements
-            dataSuccess = self.send_msg_retry(self.port, globals.MSG_C, ztmCMD.CMD_REQ_DATA.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_MEASUREMENTS.value)
+            dataSuccess = self.send_msg_retry(self.serial_ctrl.serial_port, globals.MSG_C, ztmCMD.CMD_REQ_DATA.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_MEASUREMENTS.value)
             if not dataSuccess:
                 messagebox.showerror("INVALID", f"Did not receive data from MCU.\nSweep process aborted.") 
                 self.sweep_finished()
@@ -362,85 +365,72 @@ class IVWindow:
         RED = 0
         self.change_LED(RED)
         self.enable_widgets()
-        self.serial_ctrl.stop()
+        #self.serial_ctrl.stop()
 
         self.STOP_BTN_FLAG = 0
 
+    def send_msg_retry(self, port, msg_type, cmd, status, status_response, *params, max_attempts=globals.MAX_ATTEMPTS):
+        """
+        Function to send a message to the MCU and retry if we do
+        not receive expected response.
 
-    '''
-    Function to send a message to the MCU and retry if we do
-    not receive expected response
-    '''
-    def send_msg_retry(self, port, msg_type, cmd, status, status_response, *params, max_attempts=globals.SWEEP_MAX_ATTEMPTS, sleep_time=globals.HALF_SECOND):
+        Args:
+            port (Serial): Port the serial is communicating with.
+            msg_type (byte): Send message type byte.
+            cmd (byte): Sent command byte.
+            status (byte): Sent status byte.
+            status_response (byte): Expected status response byte.
+            max_attempts (int, optional): Number of maximum attempts that the message will be sent. Defaults to 10.
+        Returns:
+            float: Depending on the status response, the function will return a specific value or values.
+        """
         global curr_data
         global vb_V
         
+        msg_type_map = {
+            globals.MSG_A: self.ztm_serial.sendMsgA,
+            globals.MSG_C: self.ztm_serial.sendMsgC,
+        }
+        
+        send_msg = msg_type_map.get(msg_type)
+        if send_msg is None:
+            messagebox.showerror("ERROR", "Internal error. Please try again.")
+            return False
+        
+        status_byte = globals.STAT_BYTE
+        msg_bytes    = globals.MSG_BYTES
+        status_msmt = ztmSTATUS.STATUS_MEASUREMENTS.value
+        cmd_set_vbias = ztmCMD.CMD_SET_VBIAS.value
+        
         attempt = 0
         
-        msg_print = [msg_type, cmd, status]
-        
-        # Convert each element in msg_print to a hex string
-        msg_print_hex = ' '.join(format(x, '02X') for x in msg_print)
-        
-        print(f"\nMESSAGE BEING SENT: {msg_print_hex}")
-        
         while attempt < max_attempts:
-            print(f"\n========== ATTEMPT NUMBER: {attempt+1} ==========")
-            if msg_type == globals.MSG_A:
-                self.ztm_serial.sendMsgA(port, cmd, status, *params)
-            elif msg_type == globals.MSG_B:
-                self.ztm_serial.sendMsgB(port, cmd, status, *params)
-            elif msg_type == globals.MSG_C:
-                self.ztm_serial.sendMsgC(port, cmd, status, *params)
-            elif msg_type == globals.MSG_D:
-                self.ztm_serial.sendMsgD(port, cmd, status, *params)
-            elif msg_type == globals.MSG_E:
-                self.ztm_serial.sendMsgE(port, cmd, status, *params)
-            else:
-                raise ValueError(f"Unsupported message type: {msg_type}")
-            
-            # returns 11 bytes of payload FALSE or byte response
-            testMsg = self.serial_ctrl.ztmGetMsg()
-            
-            testMsg_hex = [b for b in testMsg]
-            
-            print(f"Serial response: {testMsg_hex}")
-            
-            ### Unpack data and display on the GUI
-            if testMsg:
-                if testMsg_hex[2] == status_response and len(testMsg) == globals.MSG_BYTES:
-                    unpackResponse = self.ztm_serial.unpackRxMsg(testMsg)
-                    print(f"Received correct status response from MCU: {testMsg[2]}")
-                    
-                    if unpackResponse:
-                        if testMsg_hex[2] == ztmSTATUS.STATUS_MEASUREMENTS.value:
-                            curr_data = round(struct.unpack('f', bytes(testMsg[3:7]))[0], 3) #unpack bytes & convert
-                            cStr = str(curr_data)  # format as a string
-                            print("Received values\n\tCurrent: " + cStr + " nA\n")
-                            
-                            # vbias    
-                            vb_V = round(Convert.get_Vbias_float(struct.unpack('H',bytes(testMsg[7:9]))[0]), 3) #unpack bytes & convert
-                            vbStr = str(vb_V)   # format as a string
-                            print("\tVbias: " + vbStr + " V\n")
-                            
-                            # vpiezo
-                            vp_V = round(Convert.get_Vpiezo_float(struct.unpack('H',bytes(testMsg[9:11]))[0]), 3) #unpack bytes & convert
-                            vpStr = str(vp_V)   # format as a string
-                            print("\tVpiezo: " + vpStr + " V\n")
-                            
-                            return True
-                    return True
-                else:
-                    print(f"ERROR. Wrong response recieved: {testMsg}")
-                    print(f"Length of message received {len(testMsg)}")
-                    print(f"\tReceived status: {testMsg[2]}")
-                    print(f"\tExpected status: {status_response}")
-                    
-            else:
-                print("ERROR. Failed to receive response from MCU.")
+            msg_response = send_msg(port, cmd, status, *params) if msg_type != globals.MSG_E else send_msg(port, *params)
+            if msg_response:
+                testMsg = self.serial_ctrl.receive_serial()
+                # Unpack data and display on the GUI
+                if testMsg:
+                    testMsg_hex = list(testMsg)
+                    # checks if status byte read is the same as status byte expected AND that the response is 11 bytes long
+                    if testMsg_hex[status_byte] == status_response and len(testMsg) == msg_bytes:
+                        unpackResponse = self.ztm_serial.unpackRxMsg(testMsg)
+                        
+                        if isinstance(unpackResponse, tuple) and len(unpackResponse) == 3:
+                            if testMsg_hex[status_byte] == status_msmt:
+                                curr_data, vb_V, _ = unpackResponse
 
-            time.sleep(sleep_time)
-            attempt += 1
+                                return True
+                        return True
+                    elif testMsg_hex[status_byte] == status_msmt:
+                        if cmd == cmd_set_vbias:
+                            vb_V = round(Convert.get_Vbias_float(struct.unpack('H',bytes(testMsg[7:9]))[0]), 3)
+                            #print(f"Vbias: {vb_V} V")
+                            return vb_V
+                attempt += 1
+                time.sleep(0.1)
+            else:
+                messagebox.showerror("ERROR", "Error. Please try again.")
+                return False
             
     def save_notes(self, _=None):
             self.root.focus()
