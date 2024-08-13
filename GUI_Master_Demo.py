@@ -751,6 +751,7 @@ class MeasGUI:
                                 coarseApproach = False
                             else:       
                                 vpiezo_tip, tunneling_steps = self.auto_move_tip(tunneling_steps, globals.APPROACH_COARSE_STEP_NM, globals.DIR_DOWN)
+                                #time.sleep(0.005)
 
                             self.update_label()
                             self.parent.graph_gui.update_graph('tunneling_approach')
@@ -764,6 +765,8 @@ class MeasGUI:
                     # wait for any extra noise from the high bias to settle
                     time.sleep(0.1)
 
+                    # Send user message on coarse exit.
+                    messagebox.showinfo("TUNNELING APPROACH", f"Success. The coarse tunneling approach has ended. Received {curr_data} nA at Piezo Voltage of {vpiezo_tip} V.")
                     while(True):
                     
                         success = self.send_msg_retry(port, globals.MSG_C, ztmCMD.CMD_REQ_DATA.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_MEASUREMENTS.value)
@@ -794,7 +797,7 @@ class MeasGUI:
 
                 STOP_BTN_FLAG = 0
                 plt.ioff()
-                messagebox.showinfo("TUNNELING APPROACH", f"Success. The tunneling approach has ended. Received {curr_data} nA at Piezo Voltage of {Vpiezo_temp} V.")
+                messagebox.showinfo("TUNNELING APPROACH", f"Success. The fine tunneling approach has ended. Received {curr_data} nA at Piezo Voltage of {Vpiezo_temp} V.")
                 #self.feedback_ctrl_btn.configure(state="normal")
                 self.stop_leds()
                 self.initializer.enable_widgets(self)
@@ -2000,12 +2003,12 @@ class GraphGUI:
         self.meas_gui = meas_gui
 
         # Initialize cache file paths for different processes
-        # self.cache_files = {
-        #     'tunneling_approach': "tunneling_approach_cache.csv",
-        #     'cap_approach': "cap_approach_cache.csv",
-        #     'enable_periodics': "enable_periodics_cache.csv",
-        #     'feedback_control': "feedback_control_cache.csv"
-        # }
+        self.cache_files = {
+            'tunneling_approach': "tunneling_approach_cache.csv",
+            'cap_approach': "cap_approach_cache.csv",
+            'enable_periodics': "enable_periodics_cache.csv",
+            'feedback_control': "feedback_control_cache.csv"
+        }
         
         # INITIALIZE CACHE FILE
         #self.init_cache_file()
@@ -2017,10 +2020,9 @@ class GraphGUI:
        
         # Initializes graphical data
         self.max_data_points = max_data_points
-        self.y_data = []
-        self.x_data = []
-        self.time_data = []
-        self.graph_index = 0
+        self.y_data = deque(maxlen=max_data_points)
+        self.x_data = deque(maxlen=max_data_points)
+        self.time_data = deque(maxlen=max_data_points)
         self.line, = self.ax.plot([], [], 'r-')
 
         # Initialize an update interval counter
@@ -2030,31 +2032,30 @@ class GraphGUI:
         self.canvas = FigureCanvasTkAgg(self.fig, master=self.root)
         self.canvas.get_tk_widget().grid(row=0, column=3, columnspan=6, rowspan=10, padx=10, pady=5, sticky="n")
         
-    #def init_cache_file(self):
-    #    """
-    #    Initializes the cache file for storing discarded graph data.
-    #    """
-    #    headers = ["Time (s)", "Current (nA)"]
-    #    for _, path in self.cache_files.items():
-    #        with open(path, 'w', newline='') as file:
-    #            writer = csv.writer(file)
-    #            writer.writerow(headers)
-    #            
-    #def write_to_cache(self, process, x_values, y_values):
-    #    """
-    #    Writes a single data point to the cache file.
-    #
-    #    Args:
-    #        x_values (_type_): _description_
-    #        y_values (_type_): _description_
-    #    """
-    #    cache_file = self.cache_files.get(process)
-    #    if cache_file:
-    #        with open(cache_file, 'a', newline='') as file:
-    #            writer = csv.writer(file)
-    #            writer.writerow([x_values, y_values])        
+    def init_cache_file(self):
+        """
+        Initializes the cache file for storing discarded graph data.
+        """
+        headers = ["Time (s)", "Current (nA)"]
+        for _, path in self.cache_files.items():
+            with open(path, 'w', newline='') as file:
+                writer = csv.writer(file)
+                writer.writerow(headers)
+                
+    def write_to_cache(self, process, x_values, y_values):
+        """
+        Writes a single data point to the cache file.
 
-
+        Args:
+            x_values (_type_): _description_
+            y_values (_type_): _description_
+        """
+        cache_file = self.cache_files.get(process)
+        if cache_file:
+            with open(cache_file, 'a', newline='') as file:
+                writer = csv.writer(file)
+                writer.writerow([x_values, y_values])
+            
     def update_graph(self, process):
         """
         This will update the visual graph with the data points obtained during
@@ -2072,20 +2073,14 @@ class GraphGUI:
         rollover_time = globals.ROLLOVER_GRAPH_TIME
 
         # Update data with next data points
-        if(len(self.y_data) < self.max_data_points):
-            self.y_data.append(curr_data)
-            self.x_data.append(datetime.datetime.now())
-            time_now = datetime.datetime.now()
-            formatted_time = time_now.strftime('%H:%M:%S.%f')[:-3]
-            self.time_data.append(formatted_time)
-        else:
-            self.y_data[self.graph_index] = curr_data
-            self.x_data[self.graph_index] = datetime.datetime.now()
-            time_now = datetime.datetime.now()
-            formatted_time = time_now.strftime('%H:%M:%S.%f')[:-3]
-            self.time_data[self.graph_index] = formatted_time
-            # Update self.graph_index
-        self.graph_index = ((self.graph_index + 1) % self.max_data_points)
+        self.y_data.append(curr_data)
+        time_now = datetime.datetime.now()
+        # Append current time to x axis on graph
+        self.x_data.append(time_now)
+        
+        # Append time to include milliseconds for exported data
+        formatted_time = time_now.strftime('%H:%M:%S.%f')[:-3]
+        self.time_data.append(formatted_time)
         
         # Write every data point to the cache file for the specified process
         #self.write_to_cache(process, formatted_time, curr_data)
@@ -2145,12 +2140,12 @@ class GraphGUI:
             #    filtered_y_data = [y for x, y in zip(self.x_data, self.y_data) if x >= min_time]
 
             # Calculate the min and max y-values in the filtered data
-            # if filtered_y_data:
-            #     min_y = min(filtered_y_data)
-            #     max_y = max(filtered_y_data)
-            # else:
-            min_y = min(self.y_data)
-            max_y = max(self.y_data)
+            if filtered_y_data:
+                min_y = min(filtered_y_data)
+                max_y = max(filtered_y_data)
+            else:
+                min_y = min(self.y_data)
+                max_y = max(self.y_data)
             
             # Avoid singular transformation
             if min_y == max_y:
@@ -2180,7 +2175,6 @@ class GraphGUI:
         self.line, = self.ax.plot([], [], 'r-')
         self.canvas.draw()
         self.canvas.flush_events()
-        self.graph_index = 0
 
 
 if __name__ == "__main__":
