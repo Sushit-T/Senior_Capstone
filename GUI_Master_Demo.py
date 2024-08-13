@@ -663,7 +663,13 @@ class MeasGUI:
     
     def tunneling_approach(self):
         """
-        This function looks for a desired tunneling current using the traditional algorithm.
+        This function moves the tip towards the sample while requesting ADC measurements from the microcontroller.
+        To accelerate the process, the tunneling_approach() function first sets a high bias voltage and a relatively 
+        low target threshold for tunneling current while taking large (1nm) steps downward. This is intended to rapidly
+        move the tip down into a region where tunneling current can be achieved. Once the initial threshold with a high
+        bias voltage is reached, the process resets the bias and threshold to the user selected levels, and transitions
+        to taking smaller (~1 Angstrom) steps. This is intended to approach the sample at a slower rate and avoid 
+        crashing the tip into the sample.
         """
         global STOP_BTN_FLAG
         global PERIODICS_FLAG
