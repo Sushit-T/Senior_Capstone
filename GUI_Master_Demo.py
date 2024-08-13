@@ -2038,12 +2038,12 @@ class GraphGUI:
         self.meas_gui = meas_gui
 
         # Initialize cache file paths for different processes
-        # self.cache_files = {
-        #     'tunneling_approach': "tunneling_approach_cache.csv",
-        #     'cap_approach': "cap_approach_cache.csv",
-        #     'enable_periodics': "enable_periodics_cache.csv",
-        #     'feedback_control': "feedback_control_cache.csv"
-        # }
+        self.cache_files = {
+            'tunneling_approach': "tunneling_approach_cache.csv",
+            'cap_approach': "cap_approach_cache.csv",
+            'enable_periodics': "enable_periodics_cache.csv",
+            'feedback_control': "feedback_control_cache.csv"
+        }
         
         # INITIALIZE CACHE FILE
         #self.init_cache_file()
@@ -2067,31 +2067,30 @@ class GraphGUI:
         self.canvas = FigureCanvasTkAgg(self.fig, master=self.root)
         self.canvas.get_tk_widget().grid(row=0, column=3, columnspan=6, rowspan=10, padx=10, pady=5, sticky="n")
         
-    #def init_cache_file(self):
-    #    """
-    #    Initializes the cache file for storing discarded graph data.
-    #    """
-    #    headers = ["Time (s)", "Current (nA)"]
-    #    for _, path in self.cache_files.items():
-    #        with open(path, 'w', newline='') as file:
-    #            writer = csv.writer(file)
-    #            writer.writerow(headers)
-    #            
-    #def write_to_cache(self, process, x_values, y_values):
-    #    """
-    #    Writes a single data point to the cache file.
-    #
-    #    Args:
-    #        x_values (_type_): _description_
-    #        y_values (_type_): _description_
-    #    """
-    #    cache_file = self.cache_files.get(process)
-    #    if cache_file:
-    #        with open(cache_file, 'a', newline='') as file:
-    #            writer = csv.writer(file)
-    #            writer.writerow([x_values, y_values])        
+    def init_cache_file(self):
+        """
+        Initializes the cache file for storing discarded graph data.
+        """
+        headers = ["Time (s)", "Current (nA)"]
+        for _, path in self.cache_files.items():
+            with open(path, 'w', newline='') as file:
+                writer = csv.writer(file)
+                writer.writerow(headers)
+                
+    def write_to_cache(self, process, x_values, y_values):
+        """
+        Writes a single data point to the cache file.
 
-
+        Args:
+            x_values (_type_): _description_
+            y_values (_type_): _description_
+        """
+        cache_file = self.cache_files.get(process)
+        if cache_file:
+            with open(cache_file, 'a', newline='') as file:
+                writer = csv.writer(file)
+                writer.writerow([x_values, y_values])
+            
     def update_graph(self, process):
         """
         This will update the visual graph with the data points obtained during
@@ -2213,7 +2212,6 @@ class GraphGUI:
         self.line, = self.ax.plot([], [], 'r-')
         self.canvas.draw()
         self.canvas.flush_events()
-        
 
 
 if __name__ == "__main__":
