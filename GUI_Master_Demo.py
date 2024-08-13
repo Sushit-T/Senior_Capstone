@@ -133,21 +133,22 @@ class RootGUI:
         """
         Disables the reading of periodic data in a background thread.
         """
-        def stop_reading_task():
-            # Clear buffer
-            self.clear_buffer()
-            
-            start_time = time.time()
-            success = self.meas_gui.send_msg_retry(self.serial_ctrl.serial_port, globals.MSG_C, ztmCMD.CMD_PERIODIC_DATA_DISABLE.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_DONE.value)
+        if(PERIODICS_FLAG):
+            def stop_reading_task():
+                # Clear buffer
+                self.clear_buffer()
 
-            while not success and (time.time() - start_time) < globals.TIMEOUT:
+                start_time = time.time()
                 success = self.meas_gui.send_msg_retry(self.serial_ctrl.serial_port, globals.MSG_C, ztmCMD.CMD_PERIODIC_DATA_DISABLE.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_DONE.value)
-            if success:
-                self.widget_initializer.enable_widgets(self.meas_gui)
-                self.meas_gui.stop_leds()
-        # Run the stop reading task in a separate thread
-        stop_thread = threading.Thread(target=stop_reading_task)
-        stop_thread.start()
+
+                while not success and (time.time() - start_time) < globals.TIMEOUT:
+                    success = self.meas_gui.send_msg_retry(self.serial_ctrl.serial_port, globals.MSG_C, ztmCMD.CMD_PERIODIC_DATA_DISABLE.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_DONE.value)
+                if success:
+                    self.widget_initializer.enable_widgets(self.meas_gui)
+                    self.meas_gui.stop_leds()
+            # Run the stop reading task in a separate thread
+            stop_thread = threading.Thread(target=stop_reading_task)
+            stop_thread.start()
     
     def clear_buffer(self):
         """
@@ -664,11 +665,13 @@ class MeasGUI:
     def tunneling_approach(self):
         """
         This function moves the tip towards the sample while requesting ADC measurements from the microcontroller.
-        To accelerate the process, the tunneling_approach() function first sets a high bias voltage and a relatively 
-        low target threshold for tunneling current while taking large (1nm) steps downward. This is intended to rapidly
-        move the tip down into a region where tunneling current can be achieved. Once the initial threshold with a high
-        bias voltage is reached, the process resets the bias and threshold to the user selected levels, and transitions
-        to taking smaller (~1 Angstrom) steps. This is intended to approach the sample at a slower rate and avoid 
+        To accelerate the process, the tunneling_approach() function first engages in a 'coarse' approach, 
+        setting a high bias voltage and a relatively low target threshold for tunneling current while taking 
+        large (1nm) steps downward. 
+        This is intended to rapidly move the tip down into a region where tunneling current can be achieved. 
+        Once the initial threshold with a high bias voltage is reached, the process resets the bias and threshold 
+        to the user selected levels, and transitions to taking smaller (~1 Angstrom) steps. 
+        This is intended to approach the sample at a slower rate and avoid 
         crashing the tip into the sample.
         """
         global STOP_BTN_FLAG
@@ -739,6 +742,8 @@ class MeasGUI:
                         self.initializer.enable_widgets(self)
                         return
 
+                    ###########################
+                    # COARSE APPROACH
                     coarseApproach = True
 
                     # set high Vbias for coarse approach
@@ -746,7 +751,9 @@ class MeasGUI:
                     
                     if not success:
                         messagebox.showerror("ERROR", "There was an error starting the tip approach. Please try again.")    
-
+                        TUNN_APPR_FLAG = 0
+                        return
+                    
                     while(coarseApproach):
                     
                         success = self.send_msg_retry(port, globals.MSG_C, ztmCMD.CMD_REQ_DATA.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_MEASUREMENTS.value)
@@ -754,6 +761,7 @@ class MeasGUI:
                         if success:
                             # Check if measurement >= APPROACH_COARSE_SETPOINT nA
                             if(curr_data >= globals.APPROACH_COARSE_SETPOINT):
+                                # break out of coarse approach
                                 coarseApproach = False
                             else:       
                                 vpiezo_tip, tunneling_steps = self.auto_move_tip(tunneling_steps, globals.APPROACH_COARSE_STEP_NM, globals.DIR_DOWN)
@@ -767,8 +775,8 @@ class MeasGUI:
                     if not success:
                         messagebox.showerror("ERROR", "There was an error starting the tip approach. Please try again.") 
                     
-                    # wait for any extra noise from the high bias to settle
-                    time.sleep(0.1)
+                    # wait for any extra noise from the high bias/stepper motor to settle
+                    time.sleep(0.5)
 
                     while(True):
                     
@@ -826,8 +834,6 @@ class MeasGUI:
         """
         This function uses feedback to hold a desired tunneling current.
 
-        Args:
-            target_curr (float): This is the target tunneling current.
         """
         global STOP_BTN_FLAG
         global FEEDBACK_CTRL_FLAG
@@ -1042,7 +1048,6 @@ class MeasGUI:
         """
         self.cap_approach_thread = threading.Thread(target=self._cap_approach_impl)
         self.cap_approach_thread.start()
-
     
     def _cap_approach_impl(self):
         """
@@ -1052,12 +1057,15 @@ class MeasGUI:
         displacement currents.
         """
         global STOP_BTN_FLAG
+        global CAP_APPR_FLAG
         global vbias_save
         
         if self.check_connection():
             return
         else:
             port = self.parent.serial_ctrl.serial_port
+
+            STOP_BTN_FLAG = 0
             
             # Start Sinusoidal Vbias
             success = self.send_msg_retry(port, globals.MSG_E, ztmCMD.CMD_VBIAS_SET_SINE.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_DONE.value, globals.CAP_APPROACH_AMPL, globals.CAP_APPROACH_FREQ)
@@ -1097,17 +1105,15 @@ class MeasGUI:
                 
                 # cap approach process
                 while not_done:
-                    if STOP_BTN_FLAG == 1:
-                        break
-                        '''
-                        plt.ioff()
-                        self.stop_leds()
-                        self.initializer.enable_widgets(self)
-                        self.parent.clear_buffer()
-                        self.send_msg_retry(port, globals.MSG_C, ztmCMD.CMD_VBIAS_STOP_SINE.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_DONE.value)
-                        STOP_BTN_FLAG = 0
-                        return
-                        '''
+                    '''
+                    plt.ioff()
+                    self.stop_leds()
+                    self.initializer.enable_widgets(self)
+                    self.parent.clear_buffer()
+                    self.send_msg_retry(port, globals.MSG_C, ztmCMD.CMD_VBIAS_STOP_SINE.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_DONE.value)
+                    STOP_BTN_FLAG = 0
+                    return
+                    '''
                     
                     # Measure fft peak and update the peaks buffer
                     # gather 5 FFT's
@@ -1139,7 +1145,8 @@ class MeasGUI:
 
                     # Check if difference exceeds the threshold
                     if diff > globals.CRIT_CAP_SLOPE:
-                        not_done = False
+                        not_done = False                    
+                        # clear vbias
                         vbias_save = 0.0
                     else:
                         self.send_msg_retry(port, globals.MSG_D, ztmCMD.CMD_STEPPER_ADJ.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_DONE.value, globals.EIGHTH_STEP, globals.DIR_DOWN, globals.CAP_APPROACH_NUM_STEPS)
@@ -1147,13 +1154,22 @@ class MeasGUI:
                     self.update_label()
                     self.parent.graph_gui.update_graph('cap_approach')
 
+                    if STOP_BTN_FLAG == 1:
+                        endSine = False
+                        while not endSine:
+                            endSine = self.send_msg_retry(port, globals.MSG_C, ztmCMD.CMD_VBIAS_STOP_SINE.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_DONE.value)
+                        not_done = False
+                        time.sleep(1)
+                        break
                 # Process when the capacitance approach is complete
                 STOP_BTN_FLAG = 0   
+                # set flag false
+                CAP_APPR_FLAG = 0
                 plt.ioff()
                 self.stop_leds()
                 self.initializer.enable_widgets(self)
                 self.parent.clear_buffer()
-                self.send_msg_retry(port, globals.MSG_C, ztmCMD.CMD_VBIAS_STOP_SINE.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_DONE.value)
+                endSine = self.send_msg_retry(port, globals.MSG_C, ztmCMD.CMD_VBIAS_STOP_SINE.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_DONE.value)
                 
                 self.root.focus()
                 self.label6.delete(0, END)
@@ -1170,11 +1186,11 @@ class MeasGUI:
         
         port = self.parent.serial_ctrl.serial_port
         
-        if STOP_BTN_FLAG == 1:
-            return None
+        #if STOP_BTN_FLAG == 1:
+        #    return None
         
         result = self.send_msg_cap_approach(port, ztmCMD.CMD_REQ_FFT_DATA.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_FFT_DATA.value)
-        if result is None or STOP_BTN_FLAG == 1:
+        if result is None: #or STOP_BTN_FLAG == 1:
             return None
         else:
             #self.update_label()
@@ -1193,11 +1209,11 @@ class MeasGUI:
         """
         global STOP_BTN_FLAG
         
-        if STOP_BTN_FLAG == 1:
-            return None
+        #if STOP_BTN_FLAG == 1:
+        #    return None
         
         valid_measurements = [m for m in measurements if m is not None]
-        if not valid_measurements or STOP_BTN_FLAG == 1:
+        if not valid_measurements:# or STOP_BTN_FLAG == 1:
             return None
         return sum(valid_measurements) / len(valid_measurements)
 ############################################# END OF CAPACITANCE APPROACH #################################################
@@ -2115,17 +2131,14 @@ class GraphGUI:
                 k = 0.005   # Decay rate
                 update_interval = max(int(A* math.exp(-k * sample_size_save) + B), B)     # Minimum interval
 
-            self.graphUpdateCounter = (self.graphUpdateCounter + 1) % update_interval
-
-
         elif TUNN_APPR_FLAG:
             update_interval = 511
-            self.graphUpdateCounter = (self.graphUpdateCounter + 1) % update_interval
+            
             if TUNN_APPROACH_ESCAPE_FLG:
                 update_interval = 1
                 self.line.set_data(self.x_data, self.y_data)
                 #TUNN_APPROACH_ESCAPE_FLG = 0
-            if (self.graphUpdateCounter == (update_interval-1)) and not TUNN_APPROACH_ESCAPE_FLG: # Calculate the average of y_data
+            if (self.graph_index % (update_interval) == 0) and not TUNN_APPROACH_ESCAPE_FLG: # Calculate the average of y_data
                 # self.avg_y = sum(self.y_data) / len(self.y_data) if len(self.y_data) > 0 else 0
                 # Create a constant y-value list with the average value
                 # self.avg_y_data = [self.avg_y] * len(self.x_data)
@@ -2135,15 +2148,17 @@ class GraphGUI:
         
         elif CAP_APPR_FLAG:
             update_interval = 10                    
-            self.graphUpdateCounter = (self.graphUpdateCounter + 1) % update_interval
+            
         elif FEEDBACK_CTRL_FLAG:
             update_interval = 3   
-            self.graphUpdateCounter = (self.graphUpdateCounter + 1) % update_interval  
+              
         # Define the time interval for scaling (e.g., last 30 seconds)
         time_interval = datetime.timedelta(seconds=30)
         min_time = datetime.datetime.now() - time_interval
-            
-        if (self.graphUpdateCounter == (update_interval-1)):
+
+        self.graphUpdateCounter = (self.graphUpdateCounter + 1) % update_interval 
+
+        if (self.graph_index % (update_interval) == 0):
             if not TUNN_APPR_FLAG:
                 self.line.set_data(self.x_data, self.y_data)
             filtered_y_data = [y for x, y in zip(self.x_data, self.y_data) if x >= min_time]
