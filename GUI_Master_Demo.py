@@ -361,6 +361,15 @@ class MeasGUI:
         # Local variables for stepper motor adjusting
         self.step_up    = 0
         self.step_down  = 0
+
+        self.kp_label.delete(0, END)
+        self.kp_label.insert(0, str(globals.Kp))
+        
+        self.kd_label.delete(0, END)
+        self.kd_label.insert(0, str(globals.Kd))
+        
+        self.ki_label.delete(0, END)
+        self.ki_label.insert(0, str(globals.Ki))
         
         # Initialize measurement widgets
         self.update_label()
@@ -1257,9 +1266,23 @@ class MeasGUI:
         Args:
             _ (_type_, optional): Defaults to None.
         """
-        self.root.focus()
-        globals.Kp = float(self.kp_label.get())
-        print(f"Saved Kp: {globals.Kp}")
+        if self.check_connection():
+            self.root.focus()
+            return
+        else:
+            self.root.focus()
+            try:
+                newKp = self.get_float_value(self.kp_label, globals.Kp, "Kp")
+                print(f"Saved Kp: {newKp}")
+                self.kp_label.delete(0, END)
+                self.kp_label.insert(0, newKp)
+                globals.Kp = newKp
+                return True
+            except ValueError:
+                self.root.focus()
+                self.kp_label.delete(0, END)
+                self.kp_label.insert(0, newKp)
+                return 
 
     def saveKd(self, _=None):
         """
@@ -1268,9 +1291,23 @@ class MeasGUI:
         Args:
             _ (_type_, optional): Defaults to None.
         """
-        self.root.focus()
-        globals.Kd = float(self.kd_label.get())
-        print(f"Saved Kd: {globals.Kd}")
+        if self.check_connection():
+            self.root.focus()
+            return
+        else:
+            self.root.focus()
+            try:
+                newKd = self.get_float_value(self.kd_label, globals.Kd, "Kd")
+                print(f"Saved Kd: {newKd}")
+                self.kd_label.delete(0, END)
+                self.kd_label.insert(0, newKd)
+                globals.Kd = newKd
+                return True
+            except ValueError:
+                self.root.focus()
+                self.kd_label.delete(0, END)
+                self.kd_label.insert(0, newKd)
+                return 
 
     def saveKi(self, _=None):
         """
@@ -1279,9 +1316,23 @@ class MeasGUI:
         Args:
             _ (_type_, optional): Defaults to None.
         """
-        self.root.focus()
-        globals.Ki = float(self.ki_label.get())
-        print(f"Saved Ki: {globals.Ki}")
+        if self.check_connection():
+            self.root.focus()
+            return
+        else:
+            self.root.focus()
+            try:
+                newKi = self.get_float_value(self.ki_label, globals.Ki, "Ki")
+                print(f"Saved Ki: {newKi}")
+                self.ki_label.delete(0, END)
+                self.ki_label.insert(0, newKi)
+                globals.Ki = newKi
+                return True
+            except ValueError:
+                self.root.focus()
+                self.ki_label.delete(0, END)
+                self.ki_label.insert(0, newKi)
+                return 
 
     def savePiezoValue(self, _=None):         
         """
@@ -1818,15 +1869,6 @@ class MeasGUI:
         curr_data += self.curr_offset
         self.label2.configure(text=f"{curr_data:.4f} nA")
         self.label12.configure(text=f"{vp_V:.5f} ")
-        
-        self.kp_label.delete(0, END)
-        self.kp_label.insert(0, str(globals.Kp))
-        
-        self.kd_label.delete(0, END)
-        self.kd_label.insert(0, str(globals.Kd))
-        
-        self.ki_label.delete(0, END)
-        self.ki_label.insert(0, str(globals.Ki))
 
     def save_notes(self, _=None):
         """
