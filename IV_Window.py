@@ -84,7 +84,6 @@ class IVWindow:
         print("Stopped reading data...")
         self.enable_widgets()
         self.STOP_BTN_FLAG = 1
-        #self.serial_ctrl.stop()
     
     '''
     Function to error check user inputs
@@ -365,8 +364,6 @@ class IVWindow:
         RED = 0
         self.change_LED(RED)
         self.enable_widgets()
-        #self.serial_ctrl.stop()
-
         self.STOP_BTN_FLAG = 0
 
     def send_msg_retry(self, port, msg_type, cmd, status, status_response, *params, max_attempts=globals.MAX_ATTEMPTS):

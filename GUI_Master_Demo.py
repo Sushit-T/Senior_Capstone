@@ -1,7 +1,7 @@
 """
 Filename:   GUI_Master_Demo.py
-Author:     Jacob Kucinski and Kelsey Marquez
-Date:       8/8/24
+Author:     Sean Follo, Jacob Kucinski, Kelsey Marquez, & Dustin Matthews
+Date:       8/13/24
 Description:
 """
 from tkinter import Label, LabelFrame, Button, StringVar, OptionMenu, END
@@ -66,6 +66,7 @@ tip_app_total_steps     = None
 
 startup_flag    = 0
 
+# Flags
 TUNN_APPR_FLAG      = 0
 CAP_APPR_FLAG       = 0
 PERIODICS_FLAG      = 0
@@ -133,11 +134,11 @@ class RootGUI:
         """
         Disables the reading of periodic data in a background thread.
         """
-        if(PERIODICS_FLAG):
+        if PERIODICS_FLAG:
             def stop_reading_task():
                 # Clear buffer
                 self.clear_buffer()
-
+                
                 start_time = time.time()
                 success = self.meas_gui.send_msg_retry(self.serial_ctrl.serial_port, globals.MSG_C, ztmCMD.CMD_PERIODIC_DATA_DISABLE.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_DONE.value)
 
@@ -146,6 +147,7 @@ class RootGUI:
                 if success:
                     self.widget_initializer.enable_widgets(self.meas_gui)
                     self.meas_gui.stop_leds()
+            
             # Run the stop reading task in a separate thread
             stop_thread = threading.Thread(target=stop_reading_task)
             stop_thread.start()
@@ -653,16 +655,6 @@ class MeasGUI:
         return value
     
 ############################################# TIP APPROACH #################################################
-    '''
-    def tunneling_approach(self):
-        """
-        Starts the tunneling approach algorithm ina  separate thread to avoid freezing
-        the GUI.
-        """
-        self.tunn_approach_thread = threading.Thread(target=self._tunneling_approach_impl)
-        self.tunn_approach_thread.start()
-    '''
-    
     def tunneling_approach(self):
         """
         This function moves the tip towards the sample while requesting ADC measurements from the microcontroller.
@@ -762,7 +754,7 @@ class MeasGUI:
                         else:       
                             vpiezo_tip, tunneling_steps = self.auto_move_tip(tunneling_steps, globals.APPROACH_COARSE_STEP_NM, globals.DIR_DOWN)
                         self.update_label()
-                        self.parent.graph_gui.update_graph('tunneling_approach')
+                        self.parent.graph_gui.update_graph()
                 
                 ###############################################
                 # FINE APPROACH
@@ -811,7 +803,7 @@ class MeasGUI:
                             vpiezo_tip, tunneling_steps = self.auto_move_tip(tunneling_steps, globals.APPROACH_STEP_SIZE_NM, globals.DIR_DOWN)
                             #stepDownDelayCounter = (stepDownDelayCounter + 1) % stepDownThreshold
                         self.update_label()
-                        self.parent.graph_gui.update_graph('tunneling_approach')
+                        self.parent.graph_gui.update_graph()
                 if(STOP_BTN_FLAG):
                     messagebox.showinfo("TUNNELING APPROACH", "Approach halted by user.")
                 else:
@@ -823,23 +815,10 @@ class MeasGUI:
                 self.initializer.enable_widgets(self)
             else:
                 messagebox.showerror("ERROR", "Error. Did not receive correct response back.")
-        # Turns interactive graph off
-        #plt.ioff()
-        #self.stop_leds()
-        #self.initializer.enable_widgets(self)
 ############################################# END OF TIP APPROACH #################################################
 
 ############################################# FEEDBACK CONTROL #################################################
-    #def feedback_controller(self):
-    #    """
-    #    Starts the feedback controller separate thread to avoid freezing
-    #    the GUI.
-    #    """
-    #    self.feedback_ctrl_thread = threading.Thread(target=self._feedback_ctrl_impl)
-    #    self.feedback_ctrl_thread.start()
-    #
-        
-    def feedback_controller(self):# _feedback_ctrl_impl(self):
+    def feedback_controller(self):
         """
         This function uses feedback to hold a desired tunneling current.
 
@@ -876,9 +855,9 @@ class MeasGUI:
             if not self.saveCurrentSetpoint():
                 messagebox.showerror("ERROR", "Error. Please enter a current setpoint.")
                 return 
-            #if not self.saveSampleBias():
-            #    messagebox.showerror("ERROR", "Error. Please enter a sample bias.")
-            #    return
+            if not self.saveSampleBias():
+                messagebox.showerror("ERROR", "Error. Please enter a sample bias.")
+                return
 
             if not POS_CURR_SETPOINT_FLAG == POS_SAMPLE_BIAS_FLAG or not NEG_CURR_SETPOINT_FLAG == NEG_SAMPLE_BIAS_FLAG:
                 messagebox.showerror("ERROR", "Error. Please enter a current setpoint and sample bias with the same signage.")
@@ -933,7 +912,7 @@ class MeasGUI:
                                 vpiezo_tip, tunneling_steps = self.auto_move_tip(tunneling_steps, controller_output, globals.DIR_DOWN)
 
                         self.update_label()
-                        self.parent.graph_gui.update_graph('feedback_control')
+                        self.parent.graph_gui.update_graph()
             else:
                 messagebox.showerror("ERROR", "Error. Did not receive correct response back.")
                 # Turns interactive graph off
@@ -1057,7 +1036,6 @@ class MeasGUI:
         """
         self.cap_approach_thread = threading.Thread(target=self._cap_approach_impl)
         self.cap_approach_thread.start()
-    
     def _cap_approach_impl(self):
         """
         This function gets the tip close to the sample by using the displacement current
@@ -1081,14 +1059,14 @@ class MeasGUI:
             
             if success:
                 #########
-                # init gui stuff
+                # Init GUI stuff
                 self.parent.graph_gui.reset_graph()
                 plt.ion()
                 self.startup_leds()
                 self.initializer.disable_widgets(self)
                 
                 #######
-                # start cap approach
+                # Start cap approach
                 fft_meas = self.get_fft_peak()
                 if fft_meas is None:
                     return
@@ -1103,27 +1081,18 @@ class MeasGUI:
                 
                 
                 not_done = True
-                # index counters
+                # Index counters
                 fft_count = 0
                 delay_index = 0
                 diff_index = 0
-                # variables
+                # Variables
                 avg_diff = 0
                 diff = 0
                 fft_peak = 0
                 
-                # cap approach process
+                # Cap approach process
                 while not_done:
-                    '''
-                    plt.ioff()
-                    self.stop_leds()
-                    self.initializer.enable_widgets(self)
-                    self.parent.clear_buffer()
-                    self.send_msg_retry(port, globals.MSG_C, ztmCMD.CMD_VBIAS_STOP_SINE.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_DONE.value)
-                    STOP_BTN_FLAG = 0
-                    return
-                    '''
-                    
+                                          
                     # Measure fft peak and update the peaks buffer
                     # gather 5 FFT's
                     while(fft_count < globals.FFT_AVG_LENGTH):
@@ -1161,7 +1130,7 @@ class MeasGUI:
                         self.send_msg_retry(port, globals.MSG_D, ztmCMD.CMD_STEPPER_ADJ.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_DONE.value, globals.EIGHTH_STEP, globals.DIR_DOWN, globals.CAP_APPROACH_NUM_STEPS)
 
                     self.update_label()
-                    self.parent.graph_gui.update_graph('cap_approach')
+                    self.parent.graph_gui.update_graph()
 
                     if STOP_BTN_FLAG == 1:
                         endSine = False
@@ -1195,15 +1164,10 @@ class MeasGUI:
         
         port = self.parent.serial_ctrl.serial_port
         
-        #if STOP_BTN_FLAG == 1:
-        #    return None
-        
         result = self.send_msg_cap_approach(port, ztmCMD.CMD_REQ_FFT_DATA.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_FFT_DATA.value)
-        if result is None: #or STOP_BTN_FLAG == 1:
+        if result is None: 
             return None
         else:
-            #self.update_label()
-            #self.parent.graph_gui.update_graph()
             peak, _ = result
             return peak
     
@@ -1218,15 +1182,14 @@ class MeasGUI:
         """
         global STOP_BTN_FLAG
         
-        #if STOP_BTN_FLAG == 1:
-        #    return None
-        
         valid_measurements = [m for m in measurements if m is not None]
-        if not valid_measurements:# or STOP_BTN_FLAG == 1:
+        if not valid_measurements:
             return None
         return sum(valid_measurements) / len(valid_measurements)
+    
 ############################################# END OF CAPACITANCE APPROACH #################################################
 
+############################################# ENABLE PERIODIC DATA #################################################
     def enable_periodics(self):
         """
         Function to enable and read periodic data from the MCU.
@@ -1268,7 +1231,7 @@ class MeasGUI:
                             vp_V = round(Convert.get_Vpiezo_float(struct.unpack('H',bytes(response[9:11]))[0]), 3) 
                             #print(f"Vpiezo: {vp_V}") 
                     self.update_label()
-                    self.parent.graph_gui.update_graph('enable_periodics') 
+                    self.parent.graph_gui.update_graph() 
             else:
                 messagebox.showerror("ERROR.", "Failed to enable periodic data. Try again.")
             # Turns interactive graph off
@@ -1276,27 +1239,41 @@ class MeasGUI:
             self.stop_leds()
             self.initializer.enable_widgets(self)
             STOP_BTN_FLAG = 0
-
-    ############################################################################################################
-    ###################################### DELETE LATER, DON'T FORGET ##########################################
+############################################# END OF ENABLE PERIODIC DATA #################################################
+    
     def saveKp(self, _=None):
-            self.root.focus()
-            globals.Kp = float(self.kp_label.get())
-            print(f"Saved Kp: {globals.Kp}")
+        """
+        Method to save and update the Kp variable.
+
+        Args:
+            _ (_type_, optional): Defaults to None.
+        """
+        self.root.focus()
+        globals.Kp = float(self.kp_label.get())
+        print(f"Saved Kp: {globals.Kp}")
 
     def saveKd(self, _=None):
-            self.root.focus()
-            globals.Kd = float(self.kd_label.get())
-            print(f"Saved Kd: {globals.Kd}")
+        """
+        Method to save and update the Kd variable.
+
+        Args:
+            _ (_type_, optional): Defaults to None.
+        """
+        self.root.focus()
+        globals.Kd = float(self.kd_label.get())
+        print(f"Saved Kd: {globals.Kd}")
 
     def saveKi(self, _=None):
-            self.root.focus()
-            globals.Ki = float(self.ki_label.get())
-            print(f"Saved Ki: {globals.Ki}")
+        """
+        Method to save and update the Ki variable.
 
-    ###################################### DELETE LATER, DON'T FORGET ##########################################   
-    ############################################################################################################
-     
+        Args:
+            _ (_type_, optional): Defaults to None.
+        """
+        self.root.focus()
+        globals.Ki = float(self.ki_label.get())
+        print(f"Saved Ki: {globals.Ki}")
+
     def savePiezoValue(self, _=None):         
         """
         Method to save the piezo voltage delta value; the
@@ -1585,16 +1562,16 @@ class MeasGUI:
         else:
             port = self.parent.serial_ctrl.serial_port
             
-            if self.sample_rate_var.get() == "25 kHz":
-                sample_rate_save = 25000
-            elif self.sample_rate_var.get() == "12.5 kHz":
-                sample_rate_save = 12500
-            elif self.sample_rate_var.get() == "37.5 kHz":
-                sample_rate_save = 37500
+            if self.sample_rate_var.get() == "62.5 kHz":
+                sample_rate_save = 62500
+            elif self.sample_rate_var.get() == "40 kHz":
+                sample_rate_save = 40000
+            elif self.sample_rate_var.get() == "20 kHz":
+                sample_rate_save = 20000
             elif self.sample_rate_var.get() == "10 kHz":
                 sample_rate_save = 10000
-            elif self.sample_rate_var.get() == "5 kHz":
-                sample_rate_save = 5000
+            elif self.sample_rate_var.get() == "1 kHz":
+                sample_rate_save = 1000
 
             # Clear buffer
             self.parent.clear_buffer()
@@ -1799,60 +1776,7 @@ class MeasGUI:
                 messagebox.showerror("INVALID", f"Stepper motor is already at home position.")
                 return
             '''
-            
-    '''
-    def return_home(self):
-        """
-        Function to return to the home position and send it to the MCU.
-        """
-        global home_pos_total_steps
-        global curr_pos_total_steps
-        
-        if self.check_connection():
-            return
-        else:
-            # Request total step for stepper motor from MCU
-            port = self.parent.serial_ctrl.serial_port
-            
-            # Clear buffer
-            self.parent.clear_buffer()
-            
-            start_time = time.time()
-            curr_pos_total_steps = self.send_msg_retry(port, globals.MSG_C, ztmCMD.CMD_REQ_STEP_COUNT.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_STEP_COUNT.value)
 
-            while not curr_pos_total_steps and (time.time() - start_time) < globals.TIMEOUT:
-                curr_pos_total_steps = self.send_msg_retry(port, globals.MSG_C, ztmCMD.CMD_REQ_STEP_COUNT.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_STEP_COUNT.value)
-                
-            # If a home position has not been set, error message and return from function
-            if home_pos_total_steps == None:
-                messagebox.showerror("INVALID", f"No home position has been set.")
-                return
-            elif home_pos_total_steps == curr_pos_total_steps:
-                messagebox.showerror("INVALID", f"Stepper motor is already at home position.")
-                return
-            
-            if curr_pos_total_steps:
-                # If home position is lower than the tip's current position
-                if home_pos_total_steps > curr_pos_total_steps:
-                    return_dir = 1 # down
-                    num_of_steps = (home_pos_total_steps - curr_pos_total_steps) * 8
-                    
-                    # Send command to stepper motor for number of steps between current position and home position
-                    num_of_steps_int = int(num_of_steps)
-                    self.send_msg_retry(self.parent.serial_ctrl.serial_port, globals.MSG_D, ztmCMD.CMD_STEPPER_ADJ.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_DONE.value, globals.EIGHTH_STEP, return_dir, num_of_steps_int)
-
-                # If home position is higher than the tip's current position
-                elif home_pos_total_steps < curr_pos_total_steps:
-                    return_dir = 0 # up
-                    num_of_steps = (curr_pos_total_steps - home_pos_total_steps) * 8
-                    num_of_steps_int = int(num_of_steps)
-                    # Send command to stepper motor for number of steps between current position and home position
-                    self.send_msg_retry(self.parent.serial_ctrl.serial_port, globals.MSG_D, ztmCMD.CMD_STEPPER_ADJ.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_DONE.value, globals.EIGHTH_STEP, return_dir, num_of_steps_int)
-                curr_pos_total_steps = self.send_msg_retry(self.parent.serial_ctrl.serial_port, globals.MSG_C, ztmCMD.CMD_REQ_STEP_COUNT.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_STEP_COUNT.value)
-            else:
-                messagebox.showinfo("Information", "Did not process change in value within timeout period. Please try again.")
-        '''
-        
     def check_connection(self):
         """
         Function to check that there is a valid port connection.
@@ -1885,8 +1809,14 @@ class MeasGUI:
         curr_data += self.curr_offset
         self.label2.configure(text=f"{curr_data:.4f} nA")
         self.label12.configure(text=f"{vp_V:.5f} ")
+        
+        self.kp_label.delete(0, END)
         self.kp_label.insert(0, str(globals.Kp))
+        
+        self.kd_label.delete(0, END)
         self.kd_label.insert(0, str(globals.Kd))
+        
+        self.ki_label.delete(0, END)
         self.ki_label.insert(0, str(globals.Ki))
 
     def save_notes(self, _=None):
@@ -2032,17 +1962,6 @@ class GraphGUI:
         """
         self.root = root
         self.meas_gui = meas_gui
-
-        # Initialize cache file paths for different processes
-        self.cache_files = {
-            'tunneling_approach': "tunneling_approach_cache.csv",
-            'cap_approach': "cap_approach_cache.csv",
-            'enable_periodics': "enable_periodics_cache.csv",
-            'feedback_control': "feedback_control_cache.csv"
-        }
-        
-        # INITIALIZE CACHE FILE
-        #self.init_cache_file()
         
         # Configures plot
         self.fig, self.ax = plt.subplots()
@@ -2063,31 +1982,7 @@ class GraphGUI:
         self.canvas = FigureCanvasTkAgg(self.fig, master=self.root)
         self.canvas.get_tk_widget().grid(row=0, column=3, columnspan=6, rowspan=10, padx=10, pady=5, sticky="n")
         
-    def init_cache_file(self):
-        """
-        Initializes the cache file for storing discarded graph data.
-        """
-        headers = ["Time (s)", "Current (nA)"]
-        for _, path in self.cache_files.items():
-            with open(path, 'w', newline='') as file:
-                writer = csv.writer(file)
-                writer.writerow(headers)
-                
-    def write_to_cache(self, process, x_values, y_values):
-        """
-        Writes a single data point to the cache file.
-
-        Args:
-            x_values (_type_): _description_
-            y_values (_type_): _description_
-        """
-        cache_file = self.cache_files.get(process)
-        if cache_file:
-            with open(cache_file, 'a', newline='') as file:
-                writer = csv.writer(file)
-                writer.writerow([x_values, y_values])
-            
-    def update_graph(self, process):
+    def update_graph(self):
         """
         This will update the visual graph with the data points obtained during
         the Piezo Voltage Sweep. The data points are appended to the data arrays.
@@ -2104,18 +1999,21 @@ class GraphGUI:
         rollover_time = globals.ROLLOVER_GRAPH_TIME
 
         # Update data with next data points
-        self.y_data.append(curr_data)
-        time_now = datetime.datetime.now()
-        # Append current time to x axis on graph
-        self.x_data.append(time_now)
+        if(len(self.y_data) < self.max_data_points):
+            self.y_data.append(curr_data)
+            self.x_data.append(datetime.datetime.now())
+            time_now = datetime.datetime.now()
+            formatted_time = time_now.strftime('%H:%M:%S.%f')[:-3]
+            self.time_data.append(formatted_time)
+        else:
+            self.y_data[self.graph_index] = curr_data
+            self.x_data[self.graph_index] = datetime.datetime.now()
+            time_now = datetime.datetime.now()
+            formatted_time = time_now.strftime('%H:%M:%S.%f')[:-3]
+            self.time_data[self.graph_index] = formatted_time
+            # Update self.graph_index
+        self.graph_index = ((self.graph_index + 1) % self.max_data_points)
         
-        # Append time to include milliseconds for exported data
-        formatted_time = time_now.strftime('%H:%M:%S.%f')[:-3]
-        self.time_data.append(formatted_time)
-        
-        # Write every data point to the cache file for the specified process
-        #self.write_to_cache(process, formatted_time, curr_data)
-
         # Set x-axis parameters
         self.ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M:%S'))
         self.ax.xaxis.set_major_locator(mdates.SecondLocator(interval=2))
@@ -2135,27 +2033,20 @@ class GraphGUI:
                 k = 0.005   # Decay rate
                 update_interval = max(int(A* math.exp(-k * sample_size_save) + B), B)     # Minimum interval
 
-            self.graphUpdateCounter = (self.graphUpdateCounter + 1) % update_interval
-
-
         elif TUNN_APPR_FLAG:
-            update_interval = 511            
+            update_interval = 511
+            
             if TUNN_APPROACH_ESCAPE_FLG:
                 update_interval = 1
             self.graphUpdateCounter = (self.graphUpdateCounter + 1) % update_interval    
                 #self.line.set_data(self.x_data, self.y_data)
                 #TUNN_APPROACH_ESCAPE_FLG = 0
-            #if (self.graphUpdateCounter == (update_interval-1)) and not TUNN_APPROACH_ESCAPE_FLG: # Calculate the average of y_data
-            #    # self.avg_y = sum(self.y_data) / len(self.y_data) if len(self.y_data) > 0 else 0
-            #    # Create a constant y-value list with the average value
-            #    # self.avg_y_data = [self.avg_y] * len(self.x_data)
-            #    #self.line.set_data(self.x_data, self.avg_y_data)
-            #    # UPDATED HERE
-            #    self.line.set_data(self.x_data, self.y_data)
+            if (self.graph_index % (update_interval) == 0) and not TUNN_APPROACH_ESCAPE_FLG: # Calculate the average of y_data
+                self.line.set_data(self.x_data, self.y_data)
         
         elif CAP_APPR_FLAG:
             update_interval = 10                    
-            self.graphUpdateCounter = (self.graphUpdateCounter + 1) % update_interval
+            
         elif FEEDBACK_CTRL_FLAG:
             update_interval = 3   
             self.graphUpdateCounter = (self.graphUpdateCounter + 1) % update_interval
@@ -2166,15 +2057,10 @@ class GraphGUI:
         time_interval = datetime.timedelta(seconds=30)
         min_time = datetime.datetime.now() - time_interval
 
-        #
-            
-        if (self.graphUpdateCounter == (update_interval-1)):
-            self.line.set_data(self.x_data, self.y_data)
-            #if not TUNN_APPR_FLAG:
-            #    self.line.set_data(self.x_data, self.y_data)
+        if (self.graph_index % (update_interval) == 0):
+            if not TUNN_APPR_FLAG:
+                self.line.set_data(self.x_data, self.y_data)
             filtered_y_data = [y for x, y in zip(self.x_data, self.y_data) if x >= min_time]
-            #else:
-            #    filtered_y_data = [y for x, y in zip(self.x_data, self.y_data) if x >= min_time]
 
             # Calculate the min and max y-values in the filtered data
             if filtered_y_data:
@@ -2212,6 +2098,7 @@ class GraphGUI:
         self.line, = self.ax.plot([], [], 'r-')
         self.canvas.draw()
         self.canvas.flush_events()
+        self.graph_index = 0
 
 
 if __name__ == "__main__":

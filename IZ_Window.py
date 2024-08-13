@@ -32,7 +32,7 @@ class IZWindow:
         self.serial_ctrl = serial_ctrl
 
         # check if a serial connection has been established when opening the window
-        if self.serial_ctrl == None:
+        if self.serial_ctrl.port == None:
             messagebox.showerror("INVALID", f"No serial connection detected.\nConnect to USB via homepage and try again.") 
             self.root.destroy()
 
@@ -66,7 +66,6 @@ class IZWindow:
         print("Stopped reading data...")
         self.enable_widgets()
         self.STOP_BTN_FLAG = 1
-        self.serial_ctrl.stop()
     
     '''
     Function to error check user inputs
@@ -343,8 +342,6 @@ class IZWindow:
         RED = 0
         self.change_LED(RED)
         self.enable_widgets()
-        self.serial_ctrl.stop()
-
         self.STOP_BTN_FLAG = 0
 
     def change_LED(self, color):
