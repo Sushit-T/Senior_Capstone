@@ -728,14 +728,10 @@ class MeasGUI:
                 self.parent.graph_gui.reset_graph()
                 
                 # Turns interactive graph on
-                ### TURNED OFF FOR DEBUGGING
-                #plt.ion()
+                plt.ion()
                 
                 self.startup_leds()
                 self.initializer.disable_widgets(self)
-
-                #stepDownDelayCounter = 0
-                #stepDownThreshold = 3
                 
                 ###############################################
                 # COARSE APPROACH
@@ -2026,7 +2022,7 @@ class GraphGUI:
     """
     Function to initialize the data arrays and the graphical display.
     """
-    def __init__(self, root, meas_gui, max_data_points=4095):
+    def __init__(self, root, meas_gui, max_data_points = 4095):
         """
         This initializes the graph widget for the three different processes.
         
@@ -2139,39 +2135,43 @@ class GraphGUI:
                 k = 0.005   # Decay rate
                 update_interval = max(int(A* math.exp(-k * sample_size_save) + B), B)     # Minimum interval
 
-            #self.graphUpdateCounter = (self.graphUpdateCounter + 1) % update_interval
+            self.graphUpdateCounter = (self.graphUpdateCounter + 1) % update_interval
 
 
         elif TUNN_APPR_FLAG:
-            update_interval = 511
-            #self.graphUpdateCounter = (self.graphUpdateCounter + 1) % update_interval
+            update_interval = 511            
             if TUNN_APPROACH_ESCAPE_FLG:
                 update_interval = 1
-                self.line.set_data(self.x_data, self.y_data)
+            self.graphUpdateCounter = (self.graphUpdateCounter + 1) % update_interval    
+                #self.line.set_data(self.x_data, self.y_data)
                 #TUNN_APPROACH_ESCAPE_FLG = 0
-            if (self.graphUpdateCounter == (update_interval-1)) and not TUNN_APPROACH_ESCAPE_FLG: # Calculate the average of y_data
-                # self.avg_y = sum(self.y_data) / len(self.y_data) if len(self.y_data) > 0 else 0
-                # Create a constant y-value list with the average value
-                # self.avg_y_data = [self.avg_y] * len(self.x_data)
-                #self.line.set_data(self.x_data, self.avg_y_data)
-                # UPDATED HERE
-                self.line.set_data(self.x_data, self.y_data)
+            #if (self.graphUpdateCounter == (update_interval-1)) and not TUNN_APPROACH_ESCAPE_FLG: # Calculate the average of y_data
+            #    # self.avg_y = sum(self.y_data) / len(self.y_data) if len(self.y_data) > 0 else 0
+            #    # Create a constant y-value list with the average value
+            #    # self.avg_y_data = [self.avg_y] * len(self.x_data)
+            #    #self.line.set_data(self.x_data, self.avg_y_data)
+            #    # UPDATED HERE
+            #    self.line.set_data(self.x_data, self.y_data)
         
         elif CAP_APPR_FLAG:
             update_interval = 10                    
-            #self.graphUpdateCounter = (self.graphUpdateCounter + 1) % update_interval
+            self.graphUpdateCounter = (self.graphUpdateCounter + 1) % update_interval
         elif FEEDBACK_CTRL_FLAG:
             update_interval = 3   
-            #self.graphUpdateCounter = (self.graphUpdateCounter + 1) % update_interval  
+            self.graphUpdateCounter = (self.graphUpdateCounter + 1) % update_interval
+        else:
+            update_interval = 10    
+            self.graphUpdateCounter = (self.graphUpdateCounter + 1) % update_interval  
         # Define the time interval for scaling (e.g., last 30 seconds)
         time_interval = datetime.timedelta(seconds=30)
         min_time = datetime.datetime.now() - time_interval
 
-        self.graphUpdateCounter = (self.graphUpdateCounter + 1) % update_interval
+        #
             
         if (self.graphUpdateCounter == (update_interval-1)):
-            if not TUNN_APPR_FLAG:
-                self.line.set_data(self.x_data, self.y_data)
+            self.line.set_data(self.x_data, self.y_data)
+            #if not TUNN_APPR_FLAG:
+            #    self.line.set_data(self.x_data, self.y_data)
             filtered_y_data = [y for x, y in zip(self.x_data, self.y_data) if x >= min_time]
             #else:
             #    filtered_y_data = [y for x, y in zip(self.x_data, self.y_data) if x >= min_time]
