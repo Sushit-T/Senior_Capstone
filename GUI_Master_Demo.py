@@ -357,6 +357,7 @@ class MeasGUI:
         
         # Initialize measurement widgets
         self.update_label()
+        
 
     def open_iv_window(self):
         """
@@ -950,7 +951,7 @@ class MeasGUI:
         This function changes the tip height using either the piezo or stepper motor.
         Note: If the distance is out of range for the piezo then the stepper motor will step up
         or down, and the new distance will not be exactly what was desired. This function was 
-        created for the tunneling_approach function
+        created for the tunneling_approach function.
 
         Args:
             steps (float): Tne number of steps the microscope moves during the approach.
@@ -1888,6 +1889,9 @@ class MeasGUI:
         curr_data += self.curr_offset
         self.label2.configure(text=f"{curr_data:.4f} nA")
         self.label12.configure(text=f"{vp_V:.5f} ")
+        self.kp_label.insert(0, str(globals.Kp))
+        self.kd_label.insert(0, str(globals.Kd))
+        self.ki_label.insert(0, str(globals.Ki))
 
     def save_notes(self, _=None):
         """
