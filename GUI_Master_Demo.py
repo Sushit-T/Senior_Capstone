@@ -738,6 +738,9 @@ class MeasGUI:
                     # set high Vbias for coarse approach
                     success = self.send_msg_retry(port, globals.MSG_A, ztmCMD.CMD_SET_VBIAS.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_DONE.value, 0, globals.APPROACH_COARSE_BIAS, 0)
                     
+                    if not success:
+                        messagebox.showerror("ERROR", "There was an error starting the tip approach. Please try again.")    
+
                     while(coarseApproach):
                     
                         success = self.send_msg_retry(port, globals.MSG_C, ztmCMD.CMD_REQ_DATA.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_MEASUREMENTS.value)
@@ -751,11 +754,15 @@ class MeasGUI:
 
                             self.update_label()
                             self.parent.graph_gui.update_graph('tunneling_approach')
-                    
-                    time.sleep(0.01)
 
                     # set Vbias to user-selected value
                     success = self.send_msg_retry(port, globals.MSG_A, ztmCMD.CMD_SET_VBIAS.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_DONE.value, 0, vbias_save, 0)
+                    
+                    if not success:
+                        messagebox.showerror("ERROR", "There was an error starting the tip approach. Please try again.") 
+                    
+                    # wait for any extra noise from the high bias to settle
+                    time.sleep(0.1)
 
                     while(True):
                     
