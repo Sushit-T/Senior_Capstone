@@ -1953,7 +1953,7 @@ class GraphGUI:
     """
     Function to initialize the data arrays and the graphical display.
     """
-    def __init__(self, root, meas_gui, max_data_points = 4095):
+    def __init__(self, root, meas_gui, max_data_points = 12000):
         """
         This initializes the graph widget for the three different processes.
         
@@ -2000,19 +2000,24 @@ class GraphGUI:
         rollover_time = globals.ROLLOVER_GRAPH_TIME
 
         # Update data with next data points
-        if(len(self.y_data) < self.max_data_points):
-            self.y_data.append(curr_data)
-            self.x_data.append(datetime.datetime.now())
-            time_now = datetime.datetime.now()
-            formatted_time = time_now.strftime('%H:%M:%S.%f')[:-3]
-            self.time_data.append(formatted_time)
-        else:
-            self.y_data[self.graph_index] = curr_data
-            self.x_data[self.graph_index] = datetime.datetime.now()
-            time_now = datetime.datetime.now()
-            formatted_time = time_now.strftime('%H:%M:%S.%f')[:-3]
-            self.time_data[self.graph_index] = formatted_time
-            # Update self.graph_index
+        #if(len(self.y_data) < self.max_data_points):
+        #    self.y_data.append(curr_data)
+        #    self.x_data.append(datetime.datetime.now())
+        #    time_now = datetime.datetime.now()
+        #    formatted_time = time_now.strftime('%H:%M:%S.%f')[:-3]
+        #    self.time_data.append(formatted_time)
+        #else:
+        #    self.y_data[self.graph_index] = curr_data
+        #    self.x_data[self.graph_index] = datetime.datetime.now()
+        #    time_now = datetime.datetime.now()
+        #    formatted_time = time_now.strftime('%H:%M:%S.%f')[:-3]
+        #    self.time_data[self.graph_index] = formatted_time
+        #    # Update self.graph_index
+        self.y_data.append(curr_data)
+        self.x_data.append(datetime.datetime.now())
+        time_now = datetime.datetime.now()
+        formatted_time = time_now.strftime('%H:%M:%S.%f')[:-3]
+        self.time_data.append(formatted_time)
         self.graph_index = ((self.graph_index + 1) % self.max_data_points)
         
         # Set x-axis parameters
