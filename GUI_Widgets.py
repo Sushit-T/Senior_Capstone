@@ -149,16 +149,17 @@ class HomepageWidgets:
         # Create a CTkLabel and set the image
         meas_gui.warning_label = ctk.CTkLabel(meas_gui.root, image=meas_gui.warning_image,  text="")
 
-        # Tip controller - DELETE LATER
-        meas_gui.kp_frame = LabelFrame(meas_gui.root, text="Kp", padx=10, pady=2, bg="#ADD8E6")
+        # Tip controller 
+        meas_gui.ctrl_frame = LabelFrame(meas_gui.root, text="Feedback Control Parameters", padx=10, pady=2, bg="#ADD8E6")
+        meas_gui.kp_frame = LabelFrame(meas_gui.ctrl_frame, text="Kp", padx=10, pady=2, bg="#ADD8E6")
         meas_gui.kp_label = Entry(meas_gui.kp_frame, bg="white", width=24)
         meas_gui.kp_label.bind("<Return>", meas_gui.saveKp)
 
-        meas_gui.kd_frame = LabelFrame(meas_gui.root, text="Kd", padx=10, pady=2, bg="#ADD8E6")
+        meas_gui.kd_frame = LabelFrame(meas_gui.ctrl_frame, text="Kd", padx=10, pady=2, bg="#ADD8E6")
         meas_gui.kd_label = Entry(meas_gui.kd_frame, bg="white", width=24)
         meas_gui.kd_label.bind("<Return>", meas_gui.saveKd)
 
-        meas_gui.ki_frame = LabelFrame(meas_gui.root, text="Ki", padx=10, pady=2, bg="#ADD8E6")
+        meas_gui.ki_frame = LabelFrame(meas_gui.ctrl_frame, text="Ki", padx=10, pady=2, bg="#ADD8E6")
         meas_gui.ki_label = Entry(meas_gui.ki_frame, bg="white", width=24)
         meas_gui.ki_label.bind("<Return>", meas_gui.saveKi)
 
@@ -171,7 +172,7 @@ class HomepageWidgets:
         #meas_gui.label1.grid(row=0, column=0, padx=5, pady=5)
 
         # Positioning sample rate menu
-        meas_gui.label_sample_rate.grid(row=1, column=1, sticky="nw")
+        meas_gui.label_sample_rate.grid(row=1, column=1, pady=10, sticky="nw")
         meas_gui.sample_rate_menu.grid(row=1, column=2) 
         meas_gui.sample_rate.grid(row=12, column=4, padx=5, pady=5)
 
@@ -257,24 +258,25 @@ class HomepageWidgets:
         meas_gui.acquire_iz_btn.grid(row=0, column=1, padx=15, sticky="e")
 
         # Save home position
-        meas_gui.save_home_pos.grid(row=11, column=9, padx=18, sticky="w")
+        meas_gui.save_home_pos.grid(row=11, column=9, padx=10, sticky="sw")
         
         # Reset home position
-        meas_gui.return_to_home_frame.grid(row=10, column=9, padx=20, pady=5, sticky="sw")
+        meas_gui.return_to_home_frame.grid(row=10, column=9, rowspan=2, padx=20, pady=5, sticky="nw")
         meas_gui.return_to_home_pos.grid(row=0, column=0, padx=18)
         
         # Warning image
-        meas_gui.warning_label.grid(row=10, column=1, columnspan=2, rowspan=4)
+        meas_gui.warning_label.grid(row=10, column=1, columnspan=2, rowspan=3, sticky="n")
         
-        # Tip controller - delete later
-        meas_gui.kp_frame.grid(row=10, column=10)
-        meas_gui.kp_label.grid(row=0, column=0)
+        # Tip controller parameters
+        meas_gui.ctrl_frame.grid(row=10, column=10, columnspan=2, rowspan=3, sticky="n")
+        meas_gui.kp_frame.grid(row=0, column=0)
+        meas_gui.kp_label.grid(row=1, column=0)
         
-        meas_gui.kd_frame.grid(row=11, column=10)
-        meas_gui.kd_label.grid(row=0, column=0)
+        meas_gui.kd_frame.grid(row=2, column=0)
+        meas_gui.kd_label.grid(row=3, column=0)
         
-        meas_gui.ki_frame.grid(row=12, column=10)
-        meas_gui.ki_label.grid(row=0, column=0)
+        meas_gui.ki_frame.grid(row=4, column=0)
+        meas_gui.ki_label.grid(row=5, column=0)
         
     def disable_widgets(self, meas_gui):
         '''
