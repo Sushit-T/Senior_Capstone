@@ -735,80 +735,92 @@ class MeasGUI:
 
                 #stepDownDelayCounter = 0
                 #stepDownThreshold = 3
-                while True:
+                
+                ###############################################
+                # COARSE APPROACH
+                ###############################################
+                approachProcess = True
+                # set high Vbias for coarse approach
+                success = self.send_msg_retry(port, globals.MSG_A, ztmCMD.CMD_SET_VBIAS.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_DONE.value, 0, globals.APPROACH_COARSE_BIAS, 0)
+                
+                if not success:
+                    messagebox.showerror("ERROR", "There was an error starting the tip approach. Please try again.")    
+                    TUNN_APPR_FLAG = 0
+                    return
+                
+                while(approachProcess):
                     if STOP_BTN_FLAG == 1:
                         plt.ioff()
                         self.stop_leds()
                         self.initializer.enable_widgets(self)
-                        return
-
-                    ###########################
-                    # COARSE APPROACH
-                    coarseApproach = True
-
-                    # set high Vbias for coarse approach
-                    success = self.send_msg_retry(port, globals.MSG_A, ztmCMD.CMD_SET_VBIAS.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_DONE.value, 0, globals.APPROACH_COARSE_BIAS, 0)
-                    
-                    if not success:
-                        messagebox.showerror("ERROR", "There was an error starting the tip approach. Please try again.")    
-                        TUNN_APPR_FLAG = 0
-                        return
-                    
-                    while(coarseApproach):
-                    
-                        success = self.send_msg_retry(port, globals.MSG_C, ztmCMD.CMD_REQ_DATA.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_MEASUREMENTS.value)
-
-                        if success:
-                            # Check if measurement >= APPROACH_COARSE_SETPOINT nA
-                            if(curr_data >= globals.APPROACH_COARSE_SETPOINT):
-                                # break out of coarse approach
-                                coarseApproach = False
-                            else:       
-                                vpiezo_tip, tunneling_steps = self.auto_move_tip(tunneling_steps, globals.APPROACH_COARSE_STEP_NM, globals.DIR_DOWN)
-
-                            self.update_label()
-                            self.parent.graph_gui.update_graph('tunneling_approach')
-
+                        approachProcess = False
+                        break
+                
+                    success = self.send_msg_retry(port, globals.MSG_C, ztmCMD.CMD_REQ_DATA.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_MEASUREMENTS.value)
+                    if success:
+                        # Check if measurement >= APPROACH_COARSE_SETPOINT nA
+                        if(curr_data >= globals.APPROACH_COARSE_SETPOINT):
+                            # break out of coarse approach
+                            approachProcess = False
+                        else:       
+                            vpiezo_tip, tunneling_steps = self.auto_move_tip(tunneling_steps, globals.APPROACH_COARSE_STEP_NM, globals.DIR_DOWN)
+                        self.update_label()
+                        self.parent.graph_gui.update_graph('tunneling_approach')
+                
+                ###############################################
+                # FINE APPROACH
+                ###############################################  
+                # check if coarse approach was exited due to Stop btn              
+                if(STOP_BTN_FLAG == False):
                     # set Vbias to user-selected value
                     success = self.send_msg_retry(port, globals.MSG_A, ztmCMD.CMD_SET_VBIAS.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_DONE.value, 0, vbias_save, 0)
-                    
+                
                     if not success:
                         messagebox.showerror("ERROR", "There was an error starting the tip approach. Please try again.") 
-                    
+                
                     # wait for any extra noise from the high bias/stepper motor to settle
                     time.sleep(0.5)
 
-                    while(True):
-                    
-                        success = self.send_msg_retry(port, globals.MSG_C, ztmCMD.CMD_REQ_DATA.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_MEASUREMENTS.value)
+                    approachProcess = True
+                else:
+                    approachProcess = False
 
-                        if success:
-                            # Immediately step back and return if current >= target
-                            if(curr_data >= curr_setpoint):
-                                Vpiezo_temp = vpiezo_tip
-                                adjust_success = self.send_msg_retry(port, globals.MSG_D, ztmCMD.CMD_STEPPER_ADJ.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_DONE.value, globals.EIGHTH_STEP, globals.DIR_UP, globals.NUM_STEPS)
-                                self.piezo_full_retract()
-                                if adjust_success:
-                                    tunneling_steps -= globals.INC_EIGHT
-                                    TUNN_APPROACH_ESCAPE_FLG = 1
-
-                                    break
-                                    #return 1, curr_data, vb_V, vp_V, tunneling_steps
-                                else:
-                                    messagebox.showerror("ERROR", "Error. Unable to adjust the stepper motor.")
-                            else:       
-                                # delay stepping down by stepDownThreshold samples                   
-                                #if(stepDownDelayCounter == stepDownThreshold-1):
-                                vpiezo_tip, tunneling_steps = self.auto_move_tip(tunneling_steps, globals.APPROACH_STEP_SIZE_NM, globals.DIR_DOWN)
-                                #stepDownDelayCounter = (stepDownDelayCounter + 1) % stepDownThreshold
-
-                            self.update_label()
-                            self.parent.graph_gui.update_graph('tunneling_approach')
-                    break
-
+                # engage fine approach                 
+                while(approachProcess):
+                    if STOP_BTN_FLAG == 1:
+                        plt.ioff()
+                        self.stop_leds()
+                        self.initializer.enable_widgets(self)
+                        approachProcess = False
+                        break                
+                    success = self.send_msg_retry(port, globals.MSG_C, ztmCMD.CMD_REQ_DATA.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_MEASUREMENTS.value)
+                    if success:
+                        # Immediately step back and return if current >= target
+                        if(curr_data >= curr_setpoint):
+                            Vpiezo_temp = vpiezo_tip
+                            adjust_success = self.send_msg_retry(port, globals.MSG_D, ztmCMD.CMD_STEPPER_ADJ.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_DONE.value, globals.EIGHTH_STEP, globals.DIR_UP, globals.NUM_STEPS)
+                            self.piezo_full_retract()
+                            if adjust_success:
+                                tunneling_steps -= globals.INC_EIGHT
+                                TUNN_APPROACH_ESCAPE_FLG = 1
+                                approachProcess = False
+                                break
+                                #return 1, curr_data, vb_V, vp_V, tunneling_steps
+                            else:
+                                messagebox.showerror("ERROR", "Error. Unable to adjust the stepper motor.")
+                        else:       
+                            # delay stepping down by stepDownThreshold samples                   
+                            #if(stepDownDelayCounter == stepDownThreshold-1):
+                            vpiezo_tip, tunneling_steps = self.auto_move_tip(tunneling_steps, globals.APPROACH_STEP_SIZE_NM, globals.DIR_DOWN)
+                            #stepDownDelayCounter = (stepDownDelayCounter + 1) % stepDownThreshold
+                        self.update_label()
+                        self.parent.graph_gui.update_graph('tunneling_approach')
+                if(STOP_BTN_FLAG):
+                    messagebox.showinfo("TUNNELING APPROACH", "Approach halted by user.")
+                else:
+                    messagebox.showinfo("TUNNELING APPROACH", f"Success. The tunneling approach has ended. Received {curr_data} nA at Piezo Voltage of {vpiezo_tip} V.")                   
                 STOP_BTN_FLAG = 0
                 plt.ioff()
-                messagebox.showinfo("TUNNELING APPROACH", f"Success. The tunneling approach has ended. Received {curr_data} nA at Piezo Voltage of {Vpiezo_temp} V.")
                 #self.feedback_ctrl_btn.configure(state="normal")
                 self.stop_leds()
                 self.initializer.enable_widgets(self)
