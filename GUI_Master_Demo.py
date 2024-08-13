@@ -749,6 +749,7 @@ class MeasGUI:
                     if success:
                         # Check if measurement >= APPROACH_COARSE_SETPOINT nA
                         if(curr_data >= globals.APPROACH_COARSE_SETPOINT):
+                            print(f"Coarse Escape current: {curr_data}, Piezo voltage: {vpiezo_tip} V")
                             # break out of coarse approach
                             approachProcess = False
                         else:       
@@ -785,7 +786,7 @@ class MeasGUI:
                     success = self.send_msg_retry(port, globals.MSG_C, ztmCMD.CMD_REQ_DATA.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_MEASUREMENTS.value)
                     if success:
                         # Immediately step back and return if current >= target
-                        if(curr_data >= curr_setpoint):
+                        if(abs(curr_data) >= abs(curr_setpoint)):
                             Vpiezo_temp = vpiezo_tip
                             adjust_success = self.send_msg_retry(port, globals.MSG_D, ztmCMD.CMD_STEPPER_ADJ.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_DONE.value, globals.EIGHTH_STEP, globals.DIR_UP, globals.NUM_STEPS)
                             self.piezo_full_retract()
@@ -807,7 +808,7 @@ class MeasGUI:
                 if(STOP_BTN_FLAG):
                     messagebox.showinfo("TUNNELING APPROACH", "Approach halted by user.")
                 else:
-                    messagebox.showinfo("TUNNELING APPROACH", f"Success. The tunneling approach has ended. Received {curr_data} nA at Piezo Voltage of {vpiezo_tip} V.")                   
+                    messagebox.showinfo("TUNNELING APPROACH", f"Success. The tunneling approach has ended. Received {curr_data} nA at Piezo Voltage of {Vpiezo_temp} V.")                   
                 STOP_BTN_FLAG = 0
                 plt.ioff()
                 #self.feedback_ctrl_btn.configure(state="normal")
@@ -866,7 +867,7 @@ class MeasGUI:
             self.parent.clear_buffer()
             
             # Set sample size to 26
-            self.send_msg_retry(port, globals.MSG_B, ztmCMD.CMD_SET_ADC_SAMPLE_SIZE.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_DONE.value, globals.CONTROLLER_DEFAULT_SMPL_SZ)
+            #self.send_msg_retry(port, globals.MSG_B, ztmCMD.CMD_SET_ADC_SAMPLE_SIZE.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_DONE.value, globals.CONTROLLER_DEFAULT_SMPL_SZ)
 
             # Get a measurement from the MCU, send_msg_retry() will change the val of the global vars curr, vbias, vpzo
             success = self.send_msg_retry(port, globals.MSG_C, ztmCMD.CMD_REQ_DATA.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_MEASUREMENTS.value)

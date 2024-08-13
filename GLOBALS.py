@@ -21,13 +21,13 @@ STAT_BYTE    = 2    # STATUS -> 1 byte
 """
 TUNNELING APPROACH GLOBAL VARIABLES
 """
-VPIEZO_APPROACH_MAX     = 5.0
+VPIEZO_APPROACH_MAX     = 7.5
 VPIEZO_APPROACH_MIN     = 0.0
 PIEZO_EXTN_RATIO        = 20.0      # (nm per volt)
 PIEZO_CODE_RATIO        = 6553.6
 POS_TOLERANCE           = 0.1
-APPROACH_COARSE_STEP_NM = 1         # nm
-APPROACH_COARSE_BIAS    = 5.5       # Volts
+APPROACH_COARSE_STEP_NM = 0.75      # nm
+APPROACH_COARSE_BIAS    = 7         # Volts
 APPROACH_COARSE_SETPOINT= 0.1       # nA
 APPROACH_STEP_SIZE_NM   = 0.05      # nm
 FREQ_RES                = 150.0     # Hz
@@ -38,9 +38,9 @@ TIP CONTROLLER GLOBAL VARIABLES
 """
 CONTROLLER_MIN_CURR                 = 0.1 #nA
 CONTROLLER_CONST_STEP_SZ_NM         = 0.075 #nm    
-Kp                  = 0.005
-Kd                  = 0.0001
-Ki                  = 0.0001
+Kp                  = 0.05
+Kd                  = 0.03
+Ki                  = 0.03
 Ts                  = 0.16286
 CONTROLLER_DEFAULT_SMPL_SZ          = 8
 
