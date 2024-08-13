@@ -2055,10 +2055,9 @@ class GraphGUI:
        
         # Initializes graphical data
         self.max_data_points = max_data_points
-        self.y_data = []
-        self.x_data = []
-        self.time_data = []
-        self.graph_index = 0
+        self.y_data = deque(maxlen=max_data_points)
+        self.x_data = deque(maxlen=max_data_points)
+        self.time_data = deque(maxlen=max_data_points)
         self.line, = self.ax.plot([], [], 'r-')
 
         # Initialize an update interval counter
@@ -2110,20 +2109,14 @@ class GraphGUI:
         rollover_time = globals.ROLLOVER_GRAPH_TIME
 
         # Update data with next data points
-        if(len(self.y_data) < self.max_data_points):
-            self.y_data.append(curr_data)
-            self.x_data.append(datetime.datetime.now())
-            time_now = datetime.datetime.now()
-            formatted_time = time_now.strftime('%H:%M:%S.%f')[:-3]
-            self.time_data.append(formatted_time)
-        else:
-            self.y_data[self.graph_index] = curr_data
-            self.x_data[self.graph_index] = datetime.datetime.now()
-            time_now = datetime.datetime.now()
-            formatted_time = time_now.strftime('%H:%M:%S.%f')[:-3]
-            self.time_data[self.graph_index] = formatted_time
-            # Update self.graph_index
-        self.graph_index = ((self.graph_index + 1) % self.max_data_points)
+        self.y_data.append(curr_data)
+        time_now = datetime.datetime.now()
+        # Append current time to x axis on graph
+        self.x_data.append(time_now)
+        
+        # Append time to include milliseconds for exported data
+        formatted_time = time_now.strftime('%H:%M:%S.%f')[:-3]
+        self.time_data.append(formatted_time)
         
         # Write every data point to the cache file for the specified process
         #self.write_to_cache(process, formatted_time, curr_data)
@@ -2147,14 +2140,17 @@ class GraphGUI:
                 k = 0.005   # Decay rate
                 update_interval = max(int(A* math.exp(-k * sample_size_save) + B), B)     # Minimum interval
 
+            #self.graphUpdateCounter = (self.graphUpdateCounter + 1) % update_interval
+
+
         elif TUNN_APPR_FLAG:
             update_interval = 511
-            
+            #self.graphUpdateCounter = (self.graphUpdateCounter + 1) % update_interval
             if TUNN_APPROACH_ESCAPE_FLG:
                 update_interval = 1
                 self.line.set_data(self.x_data, self.y_data)
                 #TUNN_APPROACH_ESCAPE_FLG = 0
-            if (self.graph_index % (update_interval) == 0) and not TUNN_APPROACH_ESCAPE_FLG: # Calculate the average of y_data
+            if (self.graphUpdateCounter == (update_interval-1)) and not TUNN_APPROACH_ESCAPE_FLG: # Calculate the average of y_data
                 # self.avg_y = sum(self.y_data) / len(self.y_data) if len(self.y_data) > 0 else 0
                 # Create a constant y-value list with the average value
                 # self.avg_y_data = [self.avg_y] * len(self.x_data)
@@ -2164,17 +2160,17 @@ class GraphGUI:
         
         elif CAP_APPR_FLAG:
             update_interval = 10                    
-            
+            #self.graphUpdateCounter = (self.graphUpdateCounter + 1) % update_interval
         elif FEEDBACK_CTRL_FLAG:
             update_interval = 3   
-              
+            #self.graphUpdateCounter = (self.graphUpdateCounter + 1) % update_interval  
         # Define the time interval for scaling (e.g., last 30 seconds)
         time_interval = datetime.timedelta(seconds=30)
         min_time = datetime.datetime.now() - time_interval
 
-        self.graphUpdateCounter = (self.graphUpdateCounter + 1) % update_interval 
-
-        if (self.graph_index % (update_interval) == 0):
+        self.graphUpdateCounter = (self.graphUpdateCounter + 1) % update_interval
+            
+        if (self.graphUpdateCounter == (update_interval-1)):
             if not TUNN_APPR_FLAG:
                 self.line.set_data(self.x_data, self.y_data)
             filtered_y_data = [y for x, y in zip(self.x_data, self.y_data) if x >= min_time]
@@ -2182,12 +2178,12 @@ class GraphGUI:
             #    filtered_y_data = [y for x, y in zip(self.x_data, self.y_data) if x >= min_time]
 
             # Calculate the min and max y-values in the filtered data
-            # if filtered_y_data:
-            #     min_y = min(filtered_y_data)
-            #     max_y = max(filtered_y_data)
-            # else:
-            min_y = min(self.y_data)
-            max_y = max(self.y_data)
+            if filtered_y_data:
+                min_y = min(filtered_y_data)
+                max_y = max(filtered_y_data)
+            else:
+                min_y = min(self.y_data)
+                max_y = max(self.y_data)
             
             # Avoid singular transformation
             if min_y == max_y:
@@ -2217,7 +2213,7 @@ class GraphGUI:
         self.line, = self.ax.plot([], [], 'r-')
         self.canvas.draw()
         self.canvas.flush_events()
-        self.graph_index = 0
+        
 
 
 if __name__ == "__main__":
