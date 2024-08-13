@@ -54,13 +54,12 @@ class IVWindow:
         self.root.geometry("800x575")   # (width x length)
 
         # initialize serial control
-        #self.serial_ctrl = SerialCtrl(self.port_name, globals.BAUDRATE)
         self.ztm_serial = usbMsgFunctions(self)
         
         # Initialize the widgets
         self.init_meas_widgets()
         self.init_parameters()
-        self.init_graph_widgets()
+        #self.init_graph_widgets()
         self.update_label()
         
     
@@ -68,17 +67,21 @@ class IVWindow:
         """
         Starts reading bias voltage and current from the MCU.
         """
-        print("Starting to read data...")
-        if self.serial_ctrl:
-            print("Serial controller is initialized, starting now...")
-            checked = self.check_sweep_params()
-            if checked:
-                self.disable_widgets()
-                self.run_bias_sweep_process()
+        if globals.STOP_ALL_FLAG:
+            print("Starting to read data...")
+            if self.serial_ctrl:
+                print("Serial controller is initialized, starting now...")
+                checked = self.check_sweep_params()
+                if checked:
+                    self.disable_widgets()
+                    self.run_bias_sweep_process()
+                else:
+                    print("Sweep Parameters invalid. Process not started.")
             else:
-                print("Sweep Parameters invalid. Process not started.")
+                print("Serial controller is not initialized.")
         else:
-            print("Serial controller is not initialized.")
+            messagebox.showerror("ERROR", "Error. Any processes in the homepage window must be stopped before beginning the IV-sweep process.")
+            return 
     
     
     def stop_reading(self):
@@ -185,6 +188,9 @@ class IVWindow:
         self.start_btn.grid(row=0, column=0, sticky="s") 
         self.stop_btn.grid(row=1, column=0, sticky="s") 
         self.red_LED.grid(row=0, column=1, sticky="e") 
+        
+        # Publish graph
+        self.init_graph_widgets()
 
     def return_home(self):
         self.root.destroy()
@@ -506,8 +512,8 @@ class IVWindow:
             
     def init_graph_widgets(self):
         self.fig, self.ax = plt.subplots()
-        self.fig.set_figwidth(7)
-        self.fig.set_figheight(4.5)
+        #self.fig.set_figwidth(7)
+        #self.fig.set_figheight(4.5)
         self.ax.set_xlabel('Sample Bias Voltage (V)')
         self.ax.set_ylabel('Tunneling Current (nA)')
         
@@ -545,10 +551,10 @@ class IVWindow:
         self.canvas.draw()
         self.canvas.flush_events()
 
-    '''
-    Resets the visual graph and clears the data points.
-    '''
     def reset_graph(self):
+        """
+        Resets the visual graph and clears the data points.
+        """
         self.adjusted_x_axis = None
         self.ax.clear()
         self.ax.set_xlabel('Sample Bias Voltage (V)')

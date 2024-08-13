@@ -32,6 +32,9 @@ vp_V = 0
 
 class IZWindow:
     def __init__(self, root, serial_ctrl):
+        """
+        [ADD DESCRIPTION HERE.]
+        """
         self.root = root
         self.serial_ctrl = serial_ctrl
 
@@ -54,27 +57,37 @@ class IZWindow:
         self.update_label()
         
     def start_reading(self):
-        print("Starting to read data...")
-        if self.serial_ctrl:
-            print("Serial controller is initialized, starting now...")
-            checked = self.check_sweep_params()
-            if checked:
-                self.disable_widgets()
-                self.run_piezo_sweep_process()
+        """
+        [ADD DESCRIPTION HERE.]
+        """
+        if globals.STOP_ALL_FLAG:
+            print("Starting to read data...")
+            if self.serial_ctrl:
+                print("Serial controller is initialized, starting now...")
+                checked = self.check_sweep_params()
+                if checked:
+                    self.disable_widgets()
+                    self.run_piezo_sweep_process()
+                else:
+                    print("Sweep Parameters invalid. Process not started.")
             else:
-                print("Sweep Parameters invalid. Process not started.")
+                print("Serial controller is not initialized.")
         else:
-            print("Serial controller is not initialized.")
+            messagebox.showerror("ERROR", "Error. Any processes in the homepage window must be stopped before beginning the IZ-sweep process.")
+            return 
     
     def stop_reading(self):
+        """
+        [ADD DESCRIPTION HERE.]
+        """
         print("Stopped reading data...")
         self.enable_widgets()
         self.STOP_BTN_FLAG = 1
     
-    '''
-    Function to error check user inputs
-    '''
     def get_float_value(self, label, default_value, value_name):
+        """
+        Function to error check user inputs.
+        """
         try:
             value = float(label.get())
         except ValueError:
@@ -83,6 +96,9 @@ class IZWindow:
         return value  
 
     def init_meas_widgets(self):
+        """
+        [ADD DESCRIPTION HERE.]
+        """
         # piezo extension
         self.frame1 = LabelFrame(self.root, text="ΔZ/Piezo Extension (nm)", padx=10, pady=2, bg="gray")
         self.label1 = Label(self.frame1, bg="white", width=25)
@@ -141,6 +157,9 @@ class IZWindow:
         self.publish_meas_widgets()
     
     def publish_meas_widgets(self):
+        """
+        [ADD DESCRIPTION HERE.]
+        """
         # piezo extension
         #self.frame1.grid(row=13, column=0, padx=5, pady=5, sticky=SE)
         #self.label1.grid(row=0, column=0, padx=5, pady=5, sticky="s")
@@ -178,6 +197,9 @@ class IZWindow:
         self.red_LED.grid(row=0, column=1, padx=5, pady=5, sticky="e") 
 
     def init_parameters(self):
+        """
+        [ADD DESCRIPTION HERE.]
+        """
         self.min_voltage = None
         self.max_voltage = None
         self.num_setpoints = None
@@ -220,6 +242,9 @@ class IZWindow:
         self.stop_btn.configure(state="disabled")
         
     def saveMinVoltage(self, _=None):
+        """
+        [ADD DESCRIPTION HERE.]
+        """
         self.root.focus()
         try:
             if globals.VPIEZO_MIN <= float(self.label4.get()) <= globals.VPIEZO_MAX:
@@ -231,6 +256,9 @@ class IZWindow:
             messagebox.showerror("INVALID", f"Invalid value. Please update your parameters.")
 
     def saveMaxVoltage(self, _=None):
+        """
+        [ADD DESCRIPTION HERE.]
+        """
         self.root.focus()
         try:
             if globals.VPIEZO_MIN <= float(self.label5.get()) <= globals.VPIEZO_MAX:
@@ -249,16 +277,24 @@ class IZWindow:
         except:
             messagebox.showerror("INVALID", f"Invalid value. Please update your parameters.")
 
-    # current and piezo voltage
     def update_label(self):   
+        """
+        [ADD DESCRIPTION HERE.]
+        """
         self.label2.configure(text=f"{vp_V:.3f} V") # piezo voltage
         self.label3.configure(text=f"{curr_data:.3f} nA") # current
 
     def get_current_label3(self):
+        """
+        [ADD DESCRIPTION HERE.]
+        """
         current_value = float(self.label3.cget("text").split()[0])  # assuming label3 text value is "value" nA
         return current_value
 
     def check_sweep_params(self):
+        """
+        [ADD DESCRIPTION HERE.]
+        """
         if self.min_voltage == None or self.min_voltage < globals.VPIEZO_MIN or self.min_voltage > globals.VPIEZO_MAX:
             messagebox.showerror("INVALID", f"Invalid Min Voltage. Please update your paremeters.")
             return False
@@ -285,6 +321,9 @@ class IZWindow:
         return True
 
     def run_piezo_sweep_process(self):
+        """
+        [ADD DESCRIPTION HERE.]
+        """
         global vp_V
         GREEN = 1
         RED = 0
@@ -340,6 +379,9 @@ class IZWindow:
         self.sweep_finished()
 
     def sweep_finished(self):
+        """
+        [ADD DESCRIPTION HERE.]
+        """
         # disable plot interative mode
         plt.ioff()
         # # reset button states
@@ -349,6 +391,9 @@ class IZWindow:
         self.STOP_BTN_FLAG = 0
 
     def change_LED(self, color):
+        """
+        [ADD DESCRIPTION HERE.]
+        """
         if color == 0:
             self.green_LED.grid_remove()
             self.red_LED.grid(row=0, column=1, padx=5, pady=5, sticky="e") 
@@ -420,21 +465,27 @@ class IZWindow:
                 return False
 
     def save_notes(self, _=None):
-            self.root.focus()
-            note = self.label6.get(1.0, ctk.END)
-            note = note.strip()
-            return note
+        """
+        [ADD DESCRIPTION HERE.]
+        """
+        self.root.focus()
+        note = self.label6.get(1.0, ctk.END)
+        note = note.strip()
+        return note
     
     def save_date(self, _=None):
-            self.root.focus()
-            date = self.label7.get()
-            return date
+        """
+        [ADD DESCRIPTION HERE.]
+        """
+        self.root.focus()
+        date = self.label7.get()
+        return date
         
-    # file drop-down menu
     def DropDownMenu(self):
+        """
+        [ADD DESCRIPTION HERE.]
+        """
         self.menubar = tk.Menu(self.root)
-        
-        #self.custom_font = tkFont.Font(size=8)
         
         self.filemenu = tk.Menu(self.menubar, tearoff=0)
         self.filemenu.add_command(label="Save", command=self.save_graph)
@@ -448,21 +499,27 @@ class IZWindow:
         self.root.config(menu=self.menubar)
     
     def save_graph(self):
+        """
+        [ADD DESCRIPTION HERE.]
+        """
         downloads_folder = os.path.join(os.path.expanduser("~"), "Downloads")
         default_filename = os.path.join(downloads_folder, "graph.png")
         self.fig.savefig(default_filename)
         messagebox.showinfo("Save Graph", f"Graph saved in Downloads as {default_filename}")
         
     def save_graph_as(self):
+        """
+        [ADD DESCRIPTION HERE.]
+        """
         file_path = filedialog.asksaveasfilename(defaultextension=".png", filetypes=[("PNG files", "*.png"), ("All files", "*.*")])
         if file_path:
             self.fig.savefig(file_path)
             messagebox.showinfo("Save Graph As", f"Graph saved as {file_path}")
     
-    '''
-    Handles the exporting of data collected into a .csv file
-    '''  
     def export_data(self):
+        """
+        Handles the exporting of data collected into a CSV file.
+        """
         file_path = filedialog.asksaveasfilename(defaultextension=".csv", filetypes=[("Excel.CSV", "*.csv"), ("All files", "*.*")])
         if file_path:
             with open(file_path, 'w', newline='') as file:
@@ -493,11 +550,11 @@ class IZWindow:
         # Re-enable the main window (homepage)
         parent_window = self.root.master
         parent_window.attributes("-disabled", False)
-        
-    '''
-    Function to initialize the data arrays and the graphical display
-    '''      
+          
     def init_graph_widgets(self):
+        """
+        Function to initialize the data arrays and the graphical display.
+        """
         #configures plot
         self.fig, self.ax = plt.subplots()
         self.ax.set_xlabel('Piezo Voltage (V)')
@@ -517,11 +574,14 @@ class IZWindow:
         # number of points displayed on the graph at a time, may change as desired
         self.x_axis_display_max_number_of_points = 200
 
-    '''
-    This will update the visual graph with the data points obtained during
-    the Piezo Voltage Sweep. The data points are appended to the data arrays.
-    '''
     def update_graph(self, xAxisDataPoint):
+        """
+        This will update the visual graph with the data points obtained during
+        the Piezo Voltage Sweep. The data points are appended to the data arrays.
+
+        Args:
+            xAxisDataPoint (_type_): _description_
+        """
         # fetch data from label 3
         current_data = self.get_current_label3()
         
@@ -544,10 +604,10 @@ class IZWindow:
         self.canvas.draw()
         self.canvas.flush_events()
 
-    '''
-    Resets the visual graph and clears the data points.
-    '''
     def reset_graph(self):
+        """
+        Resets the visual graph and clears the data points.
+        """
         self.adjusted_x_axis = None
         self.ax.clear()
         self.ax.set_xlabel('Piezo Voltage (V)')

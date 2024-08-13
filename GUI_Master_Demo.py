@@ -126,6 +126,8 @@ class RootGUI:
         """
         Opens the serial read thread and enables the start of periodic data reading.
         """
+        globals.STOP_ALL_FLAG = 0
+        
         if self.serial_ctrl:
             if(TUNN_APPR_FLAG):
                 self.meas_gui.tunneling_approach()
@@ -139,6 +141,8 @@ class RootGUI:
         """
         Disables the reading of periodic data in a background thread.
         """
+        globals.STOP_ALL_FLAG = 1
+        
         if PERIODICS_FLAG:
             def stop_reading_task():
                 # Clear buffer
@@ -383,10 +387,10 @@ class MeasGUI:
         new_window = ctk.CTkToplevel(self.root)
         IVWindow(new_window, self.parent.serial_ctrl)
         new_window.protocol("WM_DELETE_WINDOW", lambda: self.on_closing(new_window))
-        
-        # Disable main window
-        self.root.attributes("-disabled", True)
 
+        # Disable main window
+        #self.root.attributes("-disabled", True)
+            
     def open_iz_window(self):
         """
         Method to open the I-Z Sweep window when the "Acquire I-Z" button is clicked.
@@ -397,7 +401,7 @@ class MeasGUI:
         new_window.protocol("WM_DELETE_WINDOW", lambda: self.on_closing(new_window))
         
         # Disable main window
-        self.root.attributes("-disabled", True)
+        #self.root.attributes("-disabled", True)
 
     def on_closing(self, window):
         """
