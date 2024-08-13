@@ -28,7 +28,7 @@ class HomepageWidgets:
         meas_gui.label_sample_rate = Label(meas_gui.sample_rate, text="Sample Rate: ", bg="#ADD8E6", width=11, anchor="w")
         meas_gui.sample_rate_var = StringVar()
         meas_gui.sample_rate_var.set("-")
-        meas_gui.sample_rate_menu = OptionMenu(meas_gui.sample_rate, meas_gui.sample_rate_var, "25 kHz", "12.5 kHz", "37.5 kHz", "10 kHz", "5 kHz", command=meas_gui.saveSampleRate)  
+        meas_gui.sample_rate_menu = OptionMenu(meas_gui.sample_rate, meas_gui.sample_rate_var, "62.5 kHz", "40 kHz", "20 kHz", "10 kHz", "1 kHz", command=meas_gui.saveSampleRate)  
         meas_gui.sample_rate_menu.config(width=7)
         
         # Sample size user entry
@@ -109,8 +109,8 @@ class HomepageWidgets:
         
         # Piezo adjust frame and buttons
         meas_gui.vpiezo_btn_frame = LabelFrame(meas_gui.root, text="Piezo Tip Adjust", padx=10, pady=5, bg="#eeeeee")
-        meas_gui.vpiezo_adjust_btn_up = ctk.CTkButton(master=meas_gui.vpiezo_btn_frame, image=meas_gui.add_btn_image0, text = "-Δ Vpiezo", text_color="black", font=small_font, width=40, height=40, compound="bottom", fg_color="#eeeeee", bg_color="#eeeeee", corner_radius=0, command=meas_gui.piezo_inc)
-        meas_gui.vpiezo_adjust_btn_down = ctk.CTkButton(master=meas_gui.vpiezo_btn_frame, image=meas_gui.add_btn_image1, text="+Δ Vpiezo", text_color="black", font=small_font, width=40, height=40, compound="top", fg_color="#eeeeee", bg_color="#eeeeee", corner_radius=0, command=meas_gui.piezo_dec)
+        meas_gui.vpiezo_adjust_btn_up = ctk.CTkButton(master=meas_gui.vpiezo_btn_frame, image=meas_gui.add_btn_image0, text = "+Δ Vpiezo", text_color="black", font=small_font, width=40, height=40, compound="bottom", fg_color="#eeeeee", bg_color="#eeeeee", corner_radius=0, command=meas_gui.piezo_inc)
+        meas_gui.vpiezo_adjust_btn_down = ctk.CTkButton(master=meas_gui.vpiezo_btn_frame, image=meas_gui.add_btn_image1, text="-Δ Vpiezo", text_color="black", font=small_font, width=40, height=40, compound="top", fg_color="#eeeeee", bg_color="#eeeeee", corner_radius=0, command=meas_gui.piezo_dec)
 
         # Vpiezo adjust step size
         meas_gui.frame10 = LabelFrame(meas_gui.vpiezo_btn_frame, text="", padx=5, pady=5, bg="#d0cee2")
