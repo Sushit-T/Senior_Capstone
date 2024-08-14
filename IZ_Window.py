@@ -362,10 +362,11 @@ class IZWindow:
                 self.adjusted_x_axis = vp_V - (self.x_axis_display_max_number_of_points * self.volt_per_step)
 
             # updates graph display
-            self.update_graph(vp_V)
+            self.store_data(vp_V)
 
             # increment the piezo voltage for the sweep
             self.vpiezo += self.volt_per_step
+        self.update_graph()
 
         if self.STOP_BTN_FLAG == 1:
             self.change_LED(RED)
@@ -574,7 +575,7 @@ class IZWindow:
         # number of points displayed on the graph at a time, may change as desired
         self.x_axis_display_max_number_of_points = 200
 
-    def update_graph(self, xAxisDataPoint):
+    def store_data(self, xAxisDataPoint):
         """
         This will update the visual graph with the data points obtained during
         the Piezo Voltage Sweep. The data points are appended to the data arrays.
@@ -589,15 +590,13 @@ class IZWindow:
         self.y_data.append(current_data)
         self.x_data.append(xAxisDataPoint)
         
+    def update_graph(self):
         # update graph with new data
         self.line.set_data(self.x_data, self.y_data)
         self.ax.relim()
 
         # set x-axis limits for tracking data visually
-        self.ax.set_xlim(self.min_voltage-0.001, vp_V)
-        # if threshold for display has been hit, update x-axis limits to follow data as it updates
-        if self.adjusted_x_axis != None:
-           self.ax.set_xlim(self.adjusted_x_axis, vp_V)
+        self.ax.set_xlim(self.min_voltage-0.001, vp_V + 0.001)
         self.ax.autoscale_view()
         
         # redraw canvas
