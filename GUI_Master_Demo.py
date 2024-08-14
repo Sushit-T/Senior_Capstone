@@ -1168,6 +1168,8 @@ class MeasGUI:
                 self.parent.clear_buffer()
                 endSine = self.send_msg_retry(port, globals.MSG_C, ztmCMD.CMD_VBIAS_STOP_SINE.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_DONE.value)
                 
+                messagebox.showinfo("SUCCESS", "Success. The capacitance approach has ended.")
+                                
                 self.root.focus()
                 self.label6.delete(0, END)
                 self.label6.insert(0, str(vbias_save)) 
@@ -2049,21 +2051,7 @@ class GraphGUI:
         global FEEDBACK_CTRL_FLAG
         
         rollover_time = globals.ROLLOVER_GRAPH_TIME
-
-        # Update data with next data points
-        #if(len(self.y_data) < self.max_data_points):
-        #    self.y_data.append(curr_data)
-        #    self.x_data.append(datetime.datetime.now())
-        #    time_now = datetime.datetime.now()
-        #    formatted_time = time_now.strftime('%H:%M:%S.%f')[:-3]
-        #    self.time_data.append(formatted_time)
-        #else:
-        #    self.y_data[self.graph_index] = curr_data
-        #    self.x_data[self.graph_index] = datetime.datetime.now()
-        #    time_now = datetime.datetime.now()
-        #    formatted_time = time_now.strftime('%H:%M:%S.%f')[:-3]
-        #    self.time_data[self.graph_index] = formatted_time
-        #    # Update self.graph_index
+        
         self.y_data.append(curr_data)
         self.x_data.append(datetime.datetime.now())
         time_now = datetime.datetime.now()
