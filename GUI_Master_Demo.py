@@ -735,15 +735,11 @@ class MeasGUI:
                 self.parent.graph_gui.reset_graph()
                 
                 # Turns interactive graph on
-                ### TURNED OFF FOR DEBUGGING
-                #plt.ion()
+                plt.ion()
                 
                 self.startup_leds()
                 self.initializer.disable_widgets(self)
 
-                #stepDownDelayCounter = 0
-                #stepDownThreshold = 3
-                
                 ###############################################
                 # COARSE APPROACH
                 ###############################################
@@ -768,6 +764,7 @@ class MeasGUI:
                     if success:
                         # Check if measurement >= APPROACH_COARSE_SETPOINT nA
                         if(curr_data >= globals.APPROACH_COARSE_SETPOINT):
+                            print(f"Coarse Escape current: {curr_data}, Piezo voltage: {vpiezo_tip} V")
                             # break out of coarse approach
                             approachProcess = False
                         else:       
@@ -804,7 +801,7 @@ class MeasGUI:
                     success = self.send_msg_retry(port, globals.MSG_C, ztmCMD.CMD_REQ_DATA.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_MEASUREMENTS.value)
                     if success:
                         # Immediately step back and return if current >= target
-                        if(curr_data >= curr_setpoint):
+                        if(abs(curr_data) >= abs(curr_setpoint)):
                             Vpiezo_temp = vpiezo_tip
                             adjust_success = self.send_msg_retry(port, globals.MSG_D, ztmCMD.CMD_STEPPER_ADJ.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_DONE.value, globals.EIGHTH_STEP, globals.DIR_UP, globals.NUM_STEPS)
                             self.piezo_full_retract()
@@ -826,7 +823,7 @@ class MeasGUI:
                 if(STOP_BTN_FLAG):
                     messagebox.showinfo("TUNNELING APPROACH", "Approach halted by user.")
                 else:
-                    messagebox.showinfo("TUNNELING APPROACH", f"Success. The tunneling approach has ended. Received {curr_data} nA at Piezo Voltage of {vpiezo_tip} V.")                   
+                    messagebox.showinfo("TUNNELING APPROACH", f"Success. The tunneling approach has ended. Received {curr_data} nA at Piezo Voltage of {Vpiezo_temp} V.")                   
                 STOP_BTN_FLAG = 0
                 plt.ioff()
                 #self.feedback_ctrl_btn.configure(state="normal")
@@ -885,9 +882,6 @@ class MeasGUI:
                 return
             
             self.parent.clear_buffer()
-            
-            # Set sample size to 26
-            self.send_msg_retry(port, globals.MSG_B, ztmCMD.CMD_SET_ADC_SAMPLE_SIZE.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_DONE.value, globals.CONTROLLER_DEFAULT_SMPL_SZ)
 
             # Get a measurement from the MCU, send_msg_retry() will change the val of the global vars curr, vbias, vpzo
             success = self.send_msg_retry(port, globals.MSG_C, ztmCMD.CMD_REQ_DATA.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_MEASUREMENTS.value)
@@ -1171,6 +1165,8 @@ class MeasGUI:
                 self.parent.clear_buffer()
                 endSine = self.send_msg_retry(port, globals.MSG_C, ztmCMD.CMD_VBIAS_STOP_SINE.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_DONE.value)
                 
+                messagebox.showinfo("SUCCESS", "Success. The capacitance approach has ended.")
+                                
                 self.root.focus()
                 self.label6.delete(0, END)
                 self.label6.insert(0, str(vbias_save)) 
@@ -2007,7 +2003,7 @@ class GraphGUI:
     """
     Function to initialize the data arrays and the graphical display.
     """
-    def __init__(self, root, meas_gui, max_data_points=4095):
+    def __init__(self, root, meas_gui, max_data_points=12000):
         """
         This initializes the graph widget for the three different processes.
         
@@ -2054,19 +2050,12 @@ class GraphGUI:
         rollover_time = globals.ROLLOVER_GRAPH_TIME
 
         # Update data with next data points
-        if(len(self.y_data) < self.max_data_points):
-            self.y_data.append(curr_data)
-            self.x_data.append(datetime.datetime.now())
-            time_now = datetime.datetime.now()
-            formatted_time = time_now.strftime('%H:%M:%S.%f')[:-3]
-            self.time_data.append(formatted_time)
-        else:
-            self.y_data[self.graph_index] = curr_data
-            self.x_data[self.graph_index] = datetime.datetime.now()
-            time_now = datetime.datetime.now()
-            formatted_time = time_now.strftime('%H:%M:%S.%f')[:-3]
-            self.time_data[self.graph_index] = formatted_time
-            # Update self.graph_index
+        self.y_data.append(curr_data)
+        self.x_data.append(datetime.datetime.now())
+        time_now = datetime.datetime.now()
+        formatted_time = time_now.strftime('%H:%M:%S.%f')[:-3]
+        self.time_data.append(formatted_time)
+        
         self.graph_index = ((self.graph_index + 1) % self.max_data_points)
         
         # Set x-axis parameters
@@ -2093,8 +2082,7 @@ class GraphGUI:
             
             if TUNN_APPROACH_ESCAPE_FLG:
                 update_interval = 1
-                self.line.set_data(self.x_data, self.y_data)
-                #TUNN_APPROACH_ESCAPE_FLG = 0
+            self.graphUpdateCounter = (self.graphUpdateCounter + 1) % update_interval   
             if (self.graph_index % (update_interval) == 0) and not TUNN_APPROACH_ESCAPE_FLG: # Calculate the average of y_data
                 self.line.set_data(self.x_data, self.y_data)
         
@@ -2103,12 +2091,13 @@ class GraphGUI:
             
         elif FEEDBACK_CTRL_FLAG:
             update_interval = 3   
-              
+            self.graphUpdateCounter = (self.graphUpdateCounter + 1) % update_interval
+        else:
+            update_interval = 10    
+            self.graphUpdateCounter = (self.graphUpdateCounter + 1) % update_interval      
         # Define the time interval for scaling (e.g., last 30 seconds)
         time_interval = datetime.timedelta(seconds=30)
         min_time = datetime.datetime.now() - time_interval
-
-        self.graphUpdateCounter = (self.graphUpdateCounter + 1) % update_interval 
 
         if (self.graph_index % (update_interval) == 0):
             if not TUNN_APPR_FLAG:

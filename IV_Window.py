@@ -350,11 +350,12 @@ class IVWindow:
             if i > self.x_axis_display_max_number_of_points:
                 self.adjusted_x_axis = vb_V - (self.x_axis_display_max_number_of_points * self.volt_per_step)
 
-            # updates graph display
-            self.update_graph(vb_V)
+            # store the data
+            self.store_data(vb_V)
 
             # increment the bias voltage for the sweep
             self.vbias += self.volt_per_step
+        self.update_graph()
 
         if self.STOP_BTN_FLAG == 1:
             self.change_LED(RED)
@@ -524,27 +525,26 @@ class IVWindow:
         # number of points displayed on the graph at a time, may change as desired
         self.x_axis_display_max_number_of_points = 200
         
-    '''
-    This will update the visual graph with the data points obtained during
-    the Bias Voltage Sweep. The data points are appended to the data arrays.
-    '''
-    def update_graph(self, xAxisDataPoint):
+
+    def store_data(self, xAxisDataPoint):
+        '''
+        This will update the visual graph with the data points obtained during
+        the Bias Voltage Sweep. The data points are appended to the data arrays.
+        '''
         # fetch data from label 1
         current_data = self.get_current_label1()
         
         # update data with next data points
         self.y_data.append(current_data)
         self.x_data.append(xAxisDataPoint)
-        
+    
+    def update_graph(self):
         # update graph with new data
         self.line.set_data(self.x_data, self.y_data)
         self.ax.relim()
 
         # set x-axis limits for tracking data visually
-        self.ax.set_xlim(self.min_voltage-0.001, vb_V)
-        # if threshold for display has been hit, update x-axis limits to follow data as it updates
-        if self.adjusted_x_axis != None:
-           self.ax.set_xlim(self.adjusted_x_axis, vb_V)
+        self.ax.set_xlim(self.min_voltage-0.001, self.max_voltage + 0.001)
         self.ax.autoscale_view()
         
         # redraw canvas
