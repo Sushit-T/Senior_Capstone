@@ -12,7 +12,7 @@ from enum import Enum
 import struct
 import serial
 
-# File imports
+# Import python files
 import globals
 from value_conversion import Convert
 
@@ -69,6 +69,9 @@ class ztmSTATUS(Enum):
 
 class usbMsgFunctions:
     def __init__(self, val):
+        """
+        Initialization of the class.
+        """
         self.val=val
         
     ################################################
@@ -77,13 +80,26 @@ class usbMsgFunctions:
 
     # MSG A 
     def sendMsgA(self, port, msgCmd, msgStatus, current_nA, vbias, vpzo):
-        ''' - port       = COM port variable assigned using pySerial functions
-            - msgCmd     = ztmCMD value - see documentation for valid commands
-            - msgStatus  = ztmStatus value
-            - current_nA = current as float, units of nA
-            - vbias      = bias voltage as a float, units of volts
-            - vpzo       = piezo voltage as a float, units of volts
-            - Function transmits Msg A, returns True if successful, else false. '''
+        """
+        Sends a message of type 'A' to the microcontroller, which includes a command, 
+        status, and data values for current, bias voltage, and piezo voltage. The 
+        function constructs the message with the specified parameters and attempts 
+        to send it multiple times if necessary.
+
+        Args:
+            port (serial.Serial): The COM port object used for communication, 
+                                initialized using pySerial functions.
+            msgCmd (int): The command to be sent, represented as a `ztmCMD` value. 
+                        Refer to the documentation for valid commands.
+            msgStatus (int): The status to be sent, typically `ztmSTATUS.STATUS_CLR`.
+            current_nA (float): The current value to be sent, in nanoamperes (nA).
+            vbias (float): The bias voltage to be sent, in volts.
+            vpzo (float): The piezo voltage to be sent, in volts.
+
+        Returns:
+            bool: True if the message is successfully sent; False if the message 
+                could not be sent after the maximum number of retries.    
+        """
         messageA = struct.pack('<BBBfHH', globals.MSG_A, msgCmd, msgStatus, current_nA, Convert.get_Vbias_int(vbias), Convert.get_Vpiezo_int(vpzo))
         retry = 0
         maxRetries = 10
@@ -100,11 +116,24 @@ class usbMsgFunctions:
     # MSG B
     # Note: account for parsing different commands and rateHz vs. sample size
     def sendMsgB(self, port, msgCmd, msgStatus, uint16_rateHz):
-        ''' - port          = COM port variable assigned using pySerial functions
-            - msgCmd        = ztmCMD value - see documentation for valid commands
-            - msgStatus     = ztmStatus value - usually STATUS_CLR
-            - uint16_rateHz = data rate to assign, units of Hz, max limit 65535
-            - Function transmits Msg B, returns True if successful, else false. '''
+        """
+        Used to set the sample rate in Hertz or the sample size. The function 
+        constructs the message with the specified parameters and attempts to 
+        send it multiple times if necessary.
+
+        Args:
+            port (serial.Serial): The COM port object used for communication, 
+                                initialized using pySerial functions.
+            msgCmd (int): The command to be sent, represented as a `ztmCMD` value. 
+                        Refer to the documentation for valid commands.
+            msgStatus (int): The status to be sent, typically `ztmSTATUS.STATUS_CLR`.
+            uint16_rateHz (int): The data rate to be assigned, in Hertz. The maximum 
+                                valid rate is 65535 Hz.
+
+        Returns:
+            bool: True if the message is successfully sent; False if the message 
+                could not be sent after the maximum number of retries.    
+        """
         payload = bytes(globals.PAYLOAD_BYTES - 2) 
         messageB = struct.pack('<BBBHBBBBBB', globals.MSG_B, msgCmd, msgStatus, uint16_rateHz, *payload)
         retry = 0
@@ -121,11 +150,22 @@ class usbMsgFunctions:
 
     # MSG C
     def sendMsgC(self, port, msgCmd, msgStatus):
-        ''' - port          = COM port variable assigned using pySerial functions
-            - msgCmd        = ztmCMD value - see documentation for valid commands
-            - msgStatus     = ztmStatus value - usually STATUS_CLR
-            - Function transmits Msg C, does not return anything.
-            - MSG C is meant solely to send/receive commands and statuses (ex. ACK or DONE)'''    
+        """
+        Used solely for transmitting commands and statuses (e.g., ACK or DONE). The function 
+        constructs the message with the appropriate command and status.
+
+        Args:
+            port (serial.Serial): The COM port object used for communication, 
+                                initialized using pySerial functions.
+            msgCmd (int): The command to be sent, represented as a `ztmCMD` value. 
+                        Refer to the documentation for valid commands.
+            msgStatus (int): The status to be sent, typically `ztmSTATUS.STATUS_CLR`.
+
+        Returns:
+            bool: True if the message is successfully sent; False if the message 
+                could not be sent after the maximum number of retries or if a 
+                write timeout occurs when sending a `STATUS_RDY` message.
+        """
         payload = padByte * 8
         messageC = struct.pack('BBBBBBBBBBB', globals.MSG_C, msgCmd, msgStatus, *payload)
         retry = 0
@@ -144,14 +184,26 @@ class usbMsgFunctions:
 
     # MSG D
     def sendMsgD(self, port, msgCmd, msgStatus, size, dir, count):
-        ''' - port          = COM port variable assigned using pySerial functions
-            - msgCmd        = ztmCMD value - see documentation for valid commands
-            - msgStatus     = ztmStatus value - usually STATUS_CLR
-            - size          = step size - see global constants, ex. FULL_STEP
-            - dir           = direction assignment, raise or lower the top plate of microscope
-                              ex. DIR_UP (value should be 1 or 0)
-            - count         = number of steps at the designated step size
-            - Function transmits Msg D, returns True if successful, else false. '''        
+        """
+        Controls the stepper motor's movement on the microcontroller. The 
+        message includes the command, status, step size, direction, and 
+        the number of steps. 
+
+        Args:
+            port (serial.Serial): The COM port object used for communication, 
+                                initialized using pySerial functions.
+            msgCmd (int): The command to be sent, represented as a `ztmCMD` value. 
+                        Refer to documentation for valid commands.
+            msgStatus (int): The status to be sent, typically `ztmSTATUS.STATUS_CLR`.
+            size (int): The step size, typically defined in global constants, such as `FULL_STEP`.
+            dir (int): The direction for the stepper motor movement, where `1` represents 
+                    one direction (e.g., up) and `0` represents the opposite direction (e.g., down).
+            count (int): The number of steps to move the stepper motor at the specified step size.
+
+        Returns:
+            bool: True if the message is successfully sent; False if the message 
+                could not be sent after the maximum number of retries.    
+        """     
         payload = bytes(2)
         messageD = struct.pack('<BBBBBiBB', globals.MSG_D, msgCmd, msgStatus, size, dir, count, *payload)
 
@@ -169,9 +221,21 @@ class usbMsgFunctions:
 
     # MSG E
     def sendMsgE(self, port, sineVbiasAmp, uint16_rateHz):
-        ''' - port          = COM port variable assigned using pySerial functions
-            - uint16_rateHz = vbias frequency, units of Hz, max valid freq = 5000 Hz
-            - Function transmits Msg E, does not return anything. '''           
+        """
+        Sets the sine wave bias voltage parameters on the microcontroller. 
+
+        Args:
+            port (serial.Serial): The COM port object used for communication, initialized 
+                                using pySerial functions.
+            sineVbiasAmp (float): The amplitude of the sine wave bias voltage to be set, 
+                                in volts.
+            uint16_rateHz (int): The frequency of the sine wave, in Hz. The maximum 
+                                valid frequency is 5000 Hz.
+
+        Returns:
+            bool: True if the message is successfully sent; False if the message 
+                could not be sent after the maximum number of retries.        
+        """           
         # ONLY VALID CMD IN MSG E IS CMD_VBIAS_SET_SINE
         payload = bytes(4)
         messageE = struct.pack('<BBBHHBBBB', globals.MSG_E, ztmCMD.CMD_VBIAS_SET_SINE.value, ztmSTATUS.STATUS_CLR.value, 
@@ -191,6 +255,25 @@ class usbMsgFunctions:
     ###############################################
     # UNPACK MSG DATA - Reading MCU
     def unpackRxMsg(self, rxMsg):
+        """
+        The function handles different message types and extracts relevant data, such as 
+        current, bias voltage, piezo voltage, and FFT data.
+
+        Args:
+            rxMsg (bytes): The raw message received from the microcontroller, 
+                        containing command and status bytes, as well as data.
+
+        Returns:
+            - Tuple (adcRx_nA, vBiasRx_V, vPiezoRx_V) for MSG_A if successful.
+            - Integer representing the status byte for MSG_C if successful.
+            - Float representing the number of full steps for MSG_D if successful.
+            - Tuple (adcRxFFT_nA, freqRxFFT_Hz) for MSG_F if successful.
+            - False if the message is invalid, does not match the expected format, 
+            or if the microcontroller sends an unexpected command.
+
+        Raises:
+            None explicitly, but returns `False` if an exception occurs during unpacking.        
+        """
         ################################
         # DEBUG - PRINT CMD AND STATUS #
         try:
