@@ -30,7 +30,7 @@ class HomepageWidgets:
             meas_gui (_type_): _description_
         """
 
-        small_font = ("Helvetica", 10)
+        small_font = ("Helvetica", 12)
         
         # Sample rate drop-down list   ### ADJUST LATER
         meas_gui.sample_rate = LabelFrame(meas_gui.root, text="", padx=5, pady=5, bg="#ADD8E6")
@@ -118,13 +118,17 @@ class HomepageWidgets:
         
         # Piezo adjust frame and buttons
         meas_gui.vpiezo_btn_frame = LabelFrame(meas_gui.root, text="Piezo Tip Adjust", padx=10, pady=5, bg="#eeeeee")
-        meas_gui.vpiezo_adjust_btn_up = ctk.CTkButton(master=meas_gui.vpiezo_btn_frame, image=meas_gui.add_btn_image0, text = "+Δ Vpiezo", text_color="black", font=small_font, width=40, height=40, compound="bottom", fg_color="#eeeeee", bg_color="#eeeeee", corner_radius=0, command=meas_gui.piezo_inc)
-        meas_gui.vpiezo_adjust_btn_down = ctk.CTkButton(master=meas_gui.vpiezo_btn_frame, image=meas_gui.add_btn_image1, text="-Δ Vpiezo", text_color="black", font=small_font, width=40, height=40, compound="top", fg_color="#eeeeee", bg_color="#eeeeee", corner_radius=0, command=meas_gui.piezo_dec)
+        meas_gui.vpiezo_adjust_btn_up = ctk.CTkButton(master=meas_gui.vpiezo_btn_frame, image=meas_gui.add_btn_image0, text = "EXTEND TIP", text_color="black", font=small_font, width=40, height=40, compound="bottom", fg_color="#eeeeee", bg_color="#eeeeee", corner_radius=0, command=meas_gui.piezo_inc)
+        meas_gui.vpiezo_adjust_btn_down = ctk.CTkButton(master=meas_gui.vpiezo_btn_frame, image=meas_gui.add_btn_image1, text="RETRACT TIP", text_color="black", font=small_font, width=40, height=40, compound="top", fg_color="#eeeeee", bg_color="#eeeeee", corner_radius=0, command=meas_gui.piezo_dec)
 
         # Vpiezo adjust step size
         meas_gui.frame10 = LabelFrame(meas_gui.vpiezo_btn_frame, text="", padx=5, pady=5, bg="#d0cee2")
         meas_gui.label_vpeizo_delta = Label(meas_gui.frame10, text="Vpiezo ΔV (V):", bg="#d0cee2", width=11, anchor="w")
 
+        # Total distance (nm)
+        meas_gui.total_distance_frame = LabelFrame(meas_gui.start_stop_frame, text="Total Distance (nm)", padx=10, pady=2, bg="gray")
+        meas_gui.total_distance_label = Label(meas_gui.total_distance_frame, bg="white", width=20)
+        
         ### ADJUST LATER
         meas_gui.label_vpeizo_delta_distance = Label(meas_gui.frame10, text="Approx. Dist", bg="#d0cee2", width=9, anchor="w")
         meas_gui.label10 = Entry(meas_gui.frame10, bg="white", width=10)
@@ -135,8 +139,8 @@ class HomepageWidgets:
         
         # Stepper motor adjust frame and buttons
         meas_gui.fine_adjust_frame = LabelFrame(meas_gui.root, text="Stepper Motor", padx=10, pady=5, bg="#eeeeee")
-        meas_gui.fine_adjust_btn_up = ctk.CTkButton(master=meas_gui.fine_adjust_frame, image=meas_gui.add_btn_image2, text = "Retract", text_color="black", font=small_font, width=50, height=45, compound="bottom", fg_color="#eeeeee", bg_color="#eeeeee", corner_radius=0, command=meas_gui.stepper_motor_up)
-        meas_gui.fine_adjust_btn_down = ctk.CTkButton(master=meas_gui.fine_adjust_frame, image=meas_gui.add_btn_image3, text="Extend", text_color="black", font=small_font, width=50, height=45, compound="top", fg_color="#eeeeee", bg_color="#eeeeee", corner_radius=0, command=meas_gui.stepper_motor_down)
+        meas_gui.fine_adjust_btn_up = ctk.CTkButton(master=meas_gui.fine_adjust_frame, image=meas_gui.add_btn_image2, text = "RETRACT MOTOR", text_color="black", font=small_font, width=50, height=45, compound="bottom", fg_color="#eeeeee", bg_color="#eeeeee", corner_radius=0, command=meas_gui.stepper_motor_up)
+        meas_gui.fine_adjust_btn_down = ctk.CTkButton(master=meas_gui.fine_adjust_frame, image=meas_gui.add_btn_image3, text="EXTEND MOTOR", text_color="black", font=small_font, width=50, height=45, compound="top", fg_color="#eeeeee", bg_color="#eeeeee", corner_radius=0, command=meas_gui.stepper_motor_down)
 
         # Stepper motor adjust step size
         meas_gui.frame9 = LabelFrame(meas_gui.fine_adjust_frame, text="", padx=5, pady=5, bg="#ADD8E6")
@@ -272,6 +276,10 @@ class HomepageWidgets:
         # Reset home position
         meas_gui.return_to_home_frame.grid(row=10, column=9, rowspan=2, padx=20, pady=5, sticky="nw")
         meas_gui.return_to_home_pos.grid(row=0, column=0, padx=18)
+        
+        # Total distance position
+        meas_gui.total_distance_frame.grid(row=2, column=1, sticky="e")
+        meas_gui.total_distance_label.grid(row=0, column=0)
         
         # Warning image
         meas_gui.warning_label.grid(row=10, column=1, columnspan=2, rowspan=3, sticky="n")

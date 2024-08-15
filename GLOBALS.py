@@ -49,8 +49,8 @@ CAP APPROACH GLOBAL VARIABLES
 """
 REGION_1_CAP            = 90.0  # fF
 STP_SZ_R1               = 10000.0 
-CAP_APPROACH_AMPL       = 1
-CAP_APPROACH_FREQ       = 1000
+CAP_APPROACH_AMPL       = 1 # use for conversion
+CAP_APPROACH_FREQ       = 1000 # use for iz
 DELAY_LINE_LEN          = 50
 CRIT_CAP_SLOPE          = 0.0223
 CAP_APPROACH_NUM_STEPS  = 10
@@ -67,6 +67,7 @@ VBIAS_MAX   = 10.0
 # Voltage piezo valid range
 VPIEZO_MIN  = 0.0
 VPIEZO_MAX  = 10.0
+
 
 # Volts per step for voltage piezo
 IZ_VOLTS_PER_STEP_MIN = 0.0002

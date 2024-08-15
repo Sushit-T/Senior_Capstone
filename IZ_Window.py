@@ -67,7 +67,7 @@ class IZWindow:
                 checked = self.check_sweep_params()
                 if checked:
                     self.disable_widgets()
-                    self.run_piezo_sweep_process()
+                    self.run_iz_process()
                 else:
                     print("Sweep Parameters invalid. Process not started.")
             else:
@@ -112,14 +112,13 @@ class IZWindow:
         self.label3 = Label(self.frame3, bg="white", width=25)
         
         # min voltage
-        self.frame4 = LabelFrame(self.root, text="Minimum Piezo Voltage (V)", padx=10, pady=2, bg="#A7C7E7")
+        self.frame4 = LabelFrame(self.root, text="∆z (nm)", padx=10, pady=2, bg="#A7C7E7")
         self.label4 = Entry(self.frame4, bg="white", width=30)
-        self.label4.bind("<Return>", self.saveMinVoltage)
+        self.label4.bind("<Return>", self.saveDeltaZ)
         
-        # max voltage
-        self.frame5 = LabelFrame(self.root, text="Maximum Piezo Voltage (V)", padx=10, pady=2, bg="#A7C7E7")
-        self.label5 = Entry(self.frame5, bg="white", width=30)
-        self.label5.bind("<Return>", self.saveMaxVoltage)
+        # total distance
+        self.frame5 = LabelFrame(self.root, text="Total Distance (nm)", padx=10, pady=2, bg="gray")
+        self.label5 = Label(self.frame5, bg="white", width=25)
     
         # number of setpoints
         self.frame7 = LabelFrame(self.root, text="Number of Setpoints", padx=10, pady=2, bg="#A7C7E7")
@@ -165,23 +164,23 @@ class IZWindow:
         #self.label1.grid(row=0, column=0, padx=5, pady=5, sticky="s")
         
         # piezo voltage
-        self.frame2.grid(row=11, column=1, padx=5, pady=5, sticky=SE)
+        self.frame2.grid(row=13, column=0, padx=5, pady=5, sticky=SE)
         self.label2.grid(row=0, column=0, padx=5, pady=5)   
         
         # current
-        self.frame3.grid(row=11, column=0, padx=5, pady=5, sticky=NE)
+        self.frame3.grid(row=12, column=0, padx=5, pady=5, sticky=SE)
         self.label3.grid(row=0, column=0, padx=5, pady=5, sticky="n") 
 
-        # min voltage
-        self.frame4.grid(row=12, column=0, padx=5, pady=5, sticky="n")
+        # delta z
+        self.frame4.grid(row=11, column=0, padx=5, pady=5, sticky="n")
         self.label4.grid(row=0, column=0, padx=5, pady=5)
         
-        # max voltage
+        # total distance
         self.frame5.grid(row=12, column=1, padx=5, pady=5, sticky="n")
         self.label5.grid(row=0, column=0, padx=5, pady=5)
 
         # number of setpoints
-        self.frame7.grid(row=13, column=0, padx=5, pady=5, sticky="n")
+        self.frame7.grid(row=11, column=1, padx=5, pady=5, sticky="n")
         self.label9.grid(row=0, column=0, padx=5, pady=5)
         
         # Positioning the notes section
@@ -200,13 +199,23 @@ class IZWindow:
         """
         [ADD DESCRIPTION HERE.]
         """
-        self.min_voltage = None
-        self.max_voltage = None
+        #self.min_voltage = None
+        #self.max_voltage = None
+        
+        # User inputted value
+        self.delta_z = None
+        # Range of x axis
+        self.delta_z_range = None
+        # Starting point of x axis
+        self.delta_z_min = 0
+        # Step distance
+        self.step_distance = None
+        # User inputted value
         self.num_setpoints = None
-        self.piezo_volt_range = None
-        self.volt_per_step = None
+        #self.piezo_volt_range = None
+        #self.volt_per_step = None
         self.random_num = 0
-        self.adjusted_x_axis = None
+        #self.adjusted_x_axis = None
         self.STOP_BTN_FLAG = 0
 
     def disable_widgets(self):
@@ -220,7 +229,7 @@ class IZWindow:
             - stop button
         """
         self.label4.configure(state="disabled")
-        self.label5.configure(state="disabled")
+        #self.label5.configure(state="disabled")
         self.label9.configure(state="disabled")
         self.start_btn.configure(state="disabled")
         self.stop_btn.configure(state="normal")
@@ -236,11 +245,19 @@ class IZWindow:
             - stop button
         """
         self.label4.configure(state="normal")
-        self.label5.configure(state="normal")
+        #self.label5.configure(state="normal")
         self.label9.configure(state="normal")
         self.start_btn.configure(state="normal")
         self.stop_btn.configure(state="disabled")
-        
+    
+    def saveDeltaZ(self, _=None):
+        self.root.focus()
+        try:
+            self.delta_z = float(self.label4.get())
+        except:
+            messagebox.showerror("INVALID", f"Invalid value. Please update your parameter.")
+            
+    '''
     def saveMinVoltage(self, _=None):
         """
         [ADD DESCRIPTION HERE.]
@@ -254,7 +271,9 @@ class IZWindow:
                 messagebox.showerror("INVALID", f"Invalid range. Stay within {globals.VPIEZO_MIN} to {globals.VPIEZO_MAX} V.")
         except:
             messagebox.showerror("INVALID", f"Invalid value. Please update your parameters.")
-
+    '''
+    
+    '''
     def saveMaxVoltage(self, _=None):
         """
         [ADD DESCRIPTION HERE.]
@@ -268,7 +287,8 @@ class IZWindow:
                 messagebox.showerror("INVALID", f"Invalid range. Stay within {globals.VPIEZO_MIN} to {globals.VPIEZO_MAX} V.") 
         except:
             messagebox.showerror("INVALID", f"Invalid value. Please update your parameters.")
-
+    '''
+    
     def saveNumSetpoints(self, _=None):
         self.root.focus()
         try:
@@ -295,18 +315,21 @@ class IZWindow:
         """
         [ADD DESCRIPTION HERE.]
         """
-        if self.min_voltage == None or self.min_voltage < globals.VPIEZO_MIN or self.min_voltage > globals.VPIEZO_MAX:
-            messagebox.showerror("INVALID", f"Invalid Min Voltage. Please update your paremeters.")
+        if self.delta_z == None:
+            messagebox.showerror("INVALID", f"Invalid ∆z. Please update your paremeters.")
             return False
         
+        '''
         if self.max_voltage == None or self.max_voltage <= globals.VPIEZO_MIN or self.max_voltage > globals.VPIEZO_MAX:
             messagebox.showerror("INVALID", f"Invalid Max Voltage. Please update your paremeters.") 
             return False
-
+        '''
+        
         if self.num_setpoints == None or self.num_setpoints <= globals.NUM_SETPOINTS_MIN:
             messagebox.showerror("INVALID", f"Invalid Number of Setpoints. Please update your paremeters.") 
             return False
-
+        
+        '''
         self.piezo_volt_range = self.max_voltage - self.min_voltage
         self.volt_per_step = self.piezo_volt_range / self.num_setpoints
 
@@ -317,9 +340,68 @@ class IZWindow:
         if self.volt_per_step < globals.IZ_VOLTS_PER_STEP_MIN:
             messagebox.showerror("INVALID", f"Invalid Step Size.\nStep size: {self.volt_per_step:.6f}\nStep size needs to be greater than or equal {globals.IZ_VOLTS_PER_STEP_MIN} ({globals.IZ_VOLTS_PER_STEP_MIN*1000} mV)\nDecrease number of points or increase voltage range.") 
             return False
+        '''
         
         return True
 
+    def run_iz_process(self):
+        global vp_V
+        
+        GREEN   = 1
+        RED     = 0
+        
+        self.change_LED(GREEN)
+        
+        # Set range
+        self.delta_z_range = self.delta_z
+        # Calculate step size
+        self.delta_v = self.delta_z_range / globals.PIEZO_EXTN_RATIO
+        self.step_distance = self.delta_v / self.num_setpoints
+        
+        # Setup plot
+        self.reset_graph()
+        plt.ion()
+        
+        # Send a message to get vpiezo
+        for i in range(0, self.num_setpoints + 1):
+            dataSuccess = self.send_msg_retry(self.serial_ctrl.serial_port, globals.MSG_C, ztmCMD.CMD_REQ_DATA.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_MEASUREMENTS.value)
+            if not dataSuccess:
+                messagebox.showerror("INVALID", f"Error. Did not receive data from MCU.\nSweep process aborted.") 
+                self.sweep_finished()
+                return
+            
+            diff_v = vp_V - self.delta_v
+            
+            if diff_v < 0:
+                messagebox.showerror("INVALID", f"Error. Voltage must be greater than the ∆voltage.") 
+                self.sweep_finished()
+                return
+            else:
+                # Update current and piezo labels
+                self.update_label()
+
+                #if i > self.x_axis_display_max_number_of_points:
+                #    self.adjusted_x_axis = vp_V - (self.x_axis_display_max_number_of_points * self.step_distance)
+
+                # Store the data
+                self.store_data(self.delta_z_min)
+
+                # Increment the delta z for the sweep
+                self.delta_z_min += self.step_distance
+            self.update_graph()
+
+        if self.STOP_BTN_FLAG == 1:
+            self.change_LED(RED)
+            # display message to user if sweep is aborted
+            messagebox.showwarning("STOP BUTTON PRESSED", f"The voltage sweep has been STOPPED.")
+        else: 
+            self.change_LED(RED)
+            # display message to user if sweep completed
+            messagebox.showinfo("Successful Sweep", f"The voltage sweep has completed.")
+
+        self.sweep_finished()
+                
+    '''
     def run_piezo_sweep_process(self):
         """
         [ADD DESCRIPTION HERE.]
@@ -378,7 +460,8 @@ class IZWindow:
             messagebox.showinfo("Successful Sweep", f"The voltage sweep has completed.")
 
         self.sweep_finished()
-
+    '''
+    
     def sweep_finished(self):
         """
         [ADD DESCRIPTION HERE.]
@@ -558,8 +641,8 @@ class IZWindow:
         """
         #configures plot
         self.fig, self.ax = plt.subplots()
-        self.ax.set_xlabel('Piezo Voltage (V)')
-        self.ax.set_ylabel('Tunneling Current (nA)')
+        self.ax.set_xlabel('∆z (nm)')
+        self.ax.set_ylabel('Current (nA)')
         self.fig.set_figwidth(7)
         self.fig.set_figheight(4.5)
 
@@ -596,7 +679,7 @@ class IZWindow:
         self.ax.relim()
 
         # set x-axis limits for tracking data visually
-        self.ax.set_xlim(self.min_voltage - 0.001, vp_V + 0.001)
+        self.ax.set_xlim(self.delta_z_min - 0.001, self.delta_z + 0.001)
 
         self.ax.autoscale_view()
         
@@ -608,10 +691,10 @@ class IZWindow:
         """
         Resets the visual graph and clears the data points.
         """
-        self.adjusted_x_axis = None
+        #self.adjusted_x_axis = None
         self.ax.clear()
-        self.ax.set_xlabel('Piezo Voltage (V)')
-        self.ax.set_ylabel('Tunneling Current (nA)')
+        self.ax.set_xlabel('∆z (nm)')
+        self.ax.set_ylabel('Current (nA)')
         self.y_data = []
         self.x_data = []
         self.line, = self.ax.plot([], [], 'r-')

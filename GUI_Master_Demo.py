@@ -53,7 +53,9 @@ vbias_done_flag = 0
 
 # Used for the tip approach
 vpiezo_tip      = 0.0
-tunneling_steps = 0
+
+# Used for the cap approach
+cap_data       = 0.0
 
 # Used for the sample rate
 sample_rate_save        = None
@@ -64,10 +66,10 @@ sample_size_save        = None
 sample_size_done_flag   = 0
 
 # Used for keeping track of the position of the stepper motor
-total_steps    = None
+total_steps    = 0
 
-# Used for the tunneling approach
-tip_app_total_steps     = None
+# Used to keep track of distance during processes
+total_distance = 0.0
 
 startup_flag    = 0
 
@@ -696,7 +698,7 @@ class MeasGUI:
         
         global curr_setpoint
         global vpiezo_tip
-        global tunneling_steps
+        global total_steps
         global curr_data
         global vb_V
         global vp_V
@@ -768,7 +770,7 @@ class MeasGUI:
                             # break out of coarse approach
                             approachProcess = False
                         else:       
-                            vpiezo_tip, tunneling_steps = self.auto_move_tip(tunneling_steps, globals.APPROACH_COARSE_STEP_NM, globals.DIR_DOWN)
+                            vpiezo_tip, total_steps = self.auto_move_tip(total_steps, globals.APPROACH_COARSE_STEP_NM, globals.DIR_DOWN)
                         self.update_label()
                         self.parent.graph_gui.update_graph()
                 
@@ -806,17 +808,17 @@ class MeasGUI:
                             adjust_success = self.send_msg_retry(port, globals.MSG_D, ztmCMD.CMD_STEPPER_ADJ.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_DONE.value, globals.EIGHTH_STEP, globals.DIR_UP, globals.NUM_STEPS)
                             self.piezo_full_retract()
                             if adjust_success:
-                                tunneling_steps -= globals.INC_EIGHT
+                                total_steps -= globals.INC_EIGHT
                                 TUNN_APPROACH_ESCAPE_FLG = 1
                                 approachProcess = False
                                 break
-                                #return 1, curr_data, vb_V, vp_V, tunneling_steps
+                                #return 1, curr_data, vb_V, vp_V, total_steps
                             else:
                                 messagebox.showerror("ERROR", "Error. Unable to adjust the stepper motor.")
                         else:       
                             # delay stepping down by stepDownThreshold samples                   
                             #if(stepDownDelayCounter == stepDownThreshold-1):
-                            vpiezo_tip, tunneling_steps = self.auto_move_tip(tunneling_steps, globals.APPROACH_STEP_SIZE_NM, globals.DIR_DOWN)
+                            vpiezo_tip, total_steps = self.auto_move_tip(total_steps, globals.APPROACH_STEP_SIZE_NM, globals.DIR_DOWN)
                             #stepDownDelayCounter = (stepDownDelayCounter + 1) % stepDownThreshold
                         self.update_label()
                         self.parent.graph_gui.update_graph()
@@ -852,7 +854,7 @@ class MeasGUI:
         
         global curr_setpoint
         global vpiezo_tip
-        global tunneling_steps
+        global total_steps
         global curr_data
         global vb_V
         global vp_V
@@ -911,7 +913,7 @@ class MeasGUI:
                         error_index = (error_index + 1) % 3
                         # If no tunneling current is detected, step down with a constant step size
                         if((curr_data * curr_data) < (globals.CONTROLLER_MIN_CURR * globals.CONTROLLER_MIN_CURR)):
-                            vpiezo_tip, tunneling_steps = self.auto_move_tip(tunneling_steps, globals.CONTROLLER_CONST_STEP_SZ_NM, globals.DIR_DOWN)
+                            vpiezo_tip, total_steps = self.auto_move_tip(total_steps, globals.CONTROLLER_CONST_STEP_SZ_NM, globals.DIR_DOWN)
                             sum = 0
                         # Use feedback control to maintain target current
                         else:
@@ -922,9 +924,9 @@ class MeasGUI:
                             controller_output = globals.Kp * error + globals.Ki * sum + (globals.Kd * (error - last_error) / globals.Ts)
                             last_error = error
                             if(controller_output < 0):
-                                vpiezo_tip, tunneling_steps = self.auto_move_tip(tunneling_steps, -controller_output, globals.DIR_UP)               
+                                vpiezo_tip, total_steps = self.auto_move_tip(total_steps, -controller_output, globals.DIR_UP)               
                             else:
-                                vpiezo_tip, tunneling_steps = self.auto_move_tip(tunneling_steps, controller_output, globals.DIR_DOWN)
+                                vpiezo_tip, total_steps = self.auto_move_tip(total_steps, controller_output, globals.DIR_DOWN)
 
                         self.update_label()
                         self.parent.graph_gui.update_graph()
@@ -1145,6 +1147,7 @@ class MeasGUI:
                     else:
                         self.send_msg_retry(port, globals.MSG_D, ztmCMD.CMD_STEPPER_ADJ.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_DONE.value, globals.EIGHTH_STEP, globals.DIR_DOWN, globals.CAP_APPROACH_NUM_STEPS)
 
+                    self.convert_curr_to_cap()
                     self.update_label()
                     self.parent.graph_gui.update_graph()
 
@@ -1205,6 +1208,16 @@ class MeasGUI:
             return None
         return sum(valid_measurements) / len(valid_measurements)
     
+    def convert_curr_to_cap(self):
+        global cap_data
+        global curr_data
+
+        # c = I * omega, omega = 2pi*f where f = globals.CAP_APPROACH_FREQ
+        w = (2 * math.pi) * globals.CAP_APPROACH_FREQ
+    
+        cap_data = curr_data * w
+        
+    
 ############################################# END OF CAPACITANCE APPROACH #################################################
 
 ############################################# ENABLE PERIODIC DATA #################################################
@@ -1259,6 +1272,15 @@ class MeasGUI:
             STOP_BTN_FLAG = 0
 ############################################# END OF ENABLE PERIODIC DATA #################################################
     
+    def totalDistance(self):
+        global total_distance
+        global total_steps
+        global vp_V
+
+        total_distance = (-globals.FULL_STEP_DISTANCE * total_steps) * (-globals.PIEZO_EXTN_RATIO * vp_V)
+        
+        self.total_distance_label.configure(text=f"{total_distance:.5f} nm")
+        
     def saveKp(self, _=None):
         """
         Method to save and update the Kp variable.
@@ -1869,6 +1891,8 @@ class MeasGUI:
         curr_data += self.curr_offset
         self.label2.configure(text=f"{curr_data:.4f} nA")
         self.label12.configure(text=f"{vp_V:.5f} ")
+        
+        self.totalDistance()
 
     def save_notes(self, _=None):
         """
@@ -2041,6 +2065,7 @@ class GraphGUI:
         """
         global curr_data
         global sample_size_save
+        global cap_data
         global PERIODICS_FLAG
         global CAP_APPR_FLAG
         global TUNN_APPR_FLAG
@@ -2050,7 +2075,11 @@ class GraphGUI:
         rollover_time = globals.ROLLOVER_GRAPH_TIME
 
         # Update data with next data points
-        self.y_data.append(curr_data)
+        if CAP_APPR_FLAG:
+            self.y_data.append(cap_data)    # Capacitance approach will show capacitance
+        else:
+            self.y_data.append(curr_data)   # Otherwise, will show current
+            
         self.x_data.append(datetime.datetime.now())
         time_now = datetime.datetime.now()
         formatted_time = time_now.strftime('%H:%M:%S.%f')[:-3]
@@ -2130,9 +2159,16 @@ class GraphGUI:
         """
         Resets the visual graph and clears the data points.
         """
+        global CAP_APPR_FLAG
+        
         self.ax.clear()
         self.ax.set_xlabel('Time (s)')
-        self.ax.set_ylabel('Current (nA)')
+        
+        if CAP_APPR_FLAG:
+            self.ax.set_ylabel('Capacitance')
+        else:
+            self.ax.set_ylabel('Current (nA)')
+            
         self.y_data = deque(maxlen=self.max_data_points)
         self.x_data = deque(maxlen=self.max_data_points)
         self.time_data = deque(maxlen=self.max_data_points)
