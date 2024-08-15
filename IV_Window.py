@@ -74,7 +74,7 @@ class IVWindow:
                 checked = self.check_sweep_params()
                 if checked:
                     self.disable_widgets()
-                    self.run_bias_sweep_process()
+                    self.run_iv_process()
                 else:
                     print("Sweep Parameters invalid. Process not started.")
             else:
@@ -408,7 +408,7 @@ class IVWindow:
         
         return True
 
-    def run_bias_sweep_process(self):
+    def run_iv_process(self):
         """
         Executes the bias voltage sweep process, sending commands to the MCU to 
         adjust the voltage and retrieve measurement data at each step. The process 
@@ -701,7 +701,7 @@ class IVWindow:
         # Redraw canvas
         self.canvas.draw()
         self.canvas.flush_events()
-        
+
     def reset_graph(self):
         """
         Resets the visual graph and clears the data points.

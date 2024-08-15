@@ -1881,7 +1881,7 @@ class MeasGUI:
 
     def update_label(self):
         """
-        Method to update the value of ADC current in label 2.
+        Method to update the value of ADC current in label 4.
         """
         global curr_data
         global vp_V
@@ -1895,7 +1895,7 @@ class MeasGUI:
         self.label2.configure(text=f"{curr_data:.4f} nA")
         self.label12.configure(text=f"{vp_V:.5f} ")
 
-        self.totalDistance()    # Calculates the total distance during a process
+        self.totalDistance()        # Calculates the total distance during a process
 
     def totalDistance(self):
         """
