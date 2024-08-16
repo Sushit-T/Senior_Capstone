@@ -39,17 +39,11 @@ from GUI_Widgets import HomepageWidgets
 
 ###########################################
 ############# GLOBAL VARIABLES ############
-curr_setpoint   = 0.0
 
-# For MCU sent measurements
-curr_data       = 0.0
-vb_V            = 0.0
-vp_V            = 0.0
-
-vpiezo_dist     = 0
-
-vbias_save      = None
-vbias_done_flag = 0
+# For measurements received from the ZTM controller
+curr_data           = 0.0
+vb_V                = 0.0
+vp_V                = 0.0
 
 # Used for the tip approach
 vpiezo_tip      = 0.0
@@ -57,13 +51,17 @@ vpiezo_tip      = 0.0
 # Used for the cap approach
 cap_data       = 0.0
 
-# Used for the sample rate
-sample_rate_save        = None
-sample_rate_done_flag   = 0
+# Used when the user inputs a sample rate
+sample_rate_save    = 0
 
-# Used for the sample size
-sample_size_save        = None
-sample_size_done_flag   = 0
+# Used when the user inputs a voltage bias
+vbias_save          = 0.0
+
+# Used when the user inputs a current setpoint
+curr_setpoint       = 0.0
+
+# Used when the user inputs a sample size
+sample_size_save    = 0
 
 # Used for keeping track of the position of the stepper motor
 total_steps    = 0
@@ -74,10 +72,11 @@ total_distance = 0.0
 startup_flag    = 0
 
 # Flags
-TUNN_APPR_FLAG      = 0
-CAP_APPR_FLAG       = 0
-PERIODICS_FLAG      = 0
-FEEDBACK_CTRL_FLAG  = 0
+STARTUP_FLAG                = 0
+TUNN_APPR_FLAG              = 0
+CAP_APPR_FLAG               = 0
+PERIODICS_FLAG              = 0
+FEEDBACK_CTRL_FLAG          = 0
 TUNN_APPROACH_ESCAPE_FLG    = 0
 POS_CURR_SETPOINT_FLAG      = 0
 NEG_CURR_SETPOINT_FLAG      = 0
@@ -147,7 +146,6 @@ class RootGUI:
         
         if PERIODICS_FLAG:
             def stop_reading_task():
-                # Clear buffer
                 self.clear_buffer()
                 
                 start_time = time.time()
@@ -159,7 +157,7 @@ class RootGUI:
                     self.widget_initializer.enable_widgets(self.meas_gui)
                     self.meas_gui.stop_leds()
             
-            # Run the stop reading task in a separate thread
+            # Run the stop reading task in a separate thread if it exceeds the timeout
             stop_thread = threading.Thread(target=stop_reading_task)
             stop_thread.start()
     
@@ -245,7 +243,7 @@ class ComGUI:
         """
         Verifies the connection of a port.
         """
-        global startup_flag
+        global STARTUP_FLAG
         if self.btn_connect["text"] == "Connect":
             port = self.clicked_com.get()
             try:
@@ -284,14 +282,14 @@ class ComGUI:
             InfoMsg = f"UART connection using {self.clicked_com.get()} is now closed."
             messagebox.showwarning("Disconnected", InfoMsg)
             
-            startup_flag = 0
+            STARTUP_FLAG = 0
 
     def startup_routine(self):
         """
         A message sent to the MCU upon valid connection of a port, starting the MCU program.
         """
-        global startup_flag
-        global total_steps
+        global STARTUP_FLAG
+        global stepper_motor_steps
         global vb_V
         global vp_V
         
@@ -304,14 +302,14 @@ class ComGUI:
             time.sleep(0.1)
             print("=============== STARTUP ROUTINE ===============")
             # Obtain step count
-            total_steps = self.parent.meas_gui.send_msg_retry(port, globals.MSG_C, ztmCMD.CMD_REQ_STEP_COUNT.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_STEP_COUNT.value)
-            print(f"Step count upon startup: {total_steps}")
+            stepper_motor_steps = self.parent.meas_gui.send_msg_retry(port, globals.MSG_C, ztmCMD.CMD_REQ_STEP_COUNT.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_STEP_COUNT.value)
+            print(f"Step count upon startup: {stepper_motor_steps}")
             
             # Set vbias to 0 upon startup
             self.parent.meas_gui.send_msg_retry(port, globals.MSG_A, ztmCMD.CMD_SET_VBIAS.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_DONE.value, 0, 0, 0)
             # Set vpzo to 0 upon startup
             self.parent.meas_gui.send_msg_retry(port, globals.MSG_A, ztmCMD.CMD_PIEZO_ADJ.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_DONE.value, 0, 0, 0)
-            # Check vbias and vpzo have been set to 0
+            # Check that vbias and vpzo have been set to 0
             self.parent.meas_gui.send_msg_retry(port, globals.MSG_C, ztmCMD.CMD_REQ_DATA.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_MEASUREMENTS.value)
             print(f"Measured vbias: {vb_V} V")
             print(f"Measured vpzo: {vp_V} V")
@@ -321,8 +319,8 @@ class ComGUI:
             self.drop_com["state"] = "disable"
             InfoMsg = f"Successful UART connection using {self.clicked_com.get()}."
             messagebox.showinfo("Connected", InfoMsg)
-            startup_flag = 1
-            self.parent.clear_buffer()
+
+            STARTUP_FLAG = 1
         else:
             self.btn_connect["text"] = "Connect"
             self.btn_refresh["state"] = "active"
@@ -330,16 +328,17 @@ class ComGUI:
             InfoMsg = f"Failed to connect to {self.clicked_com.get()}."
             messagebox.showerror("Connection Error", InfoMsg)
             self.parent.serial_ctrl.running = False
-            startup_flag = 0
+
+            STARTUP_FLAG = 0
 
 ###################################################################################################################
 #                                                 MeasGUI CLASS                                                   #
 ###################################################################################################################
-# class for measurements/text box widgets in homepage
 class MeasGUI:
     def __init__(self, root, parent):
         """
-        Initializes the widgets and logic for sending and receiving messages.
+        Initializes the measurements/tex box widgets and logic for sending and 
+        receiving messages.
 
         Args:
             root (tkinter.Tk): The root window of the application
@@ -348,26 +347,23 @@ class MeasGUI:
         self.root = root
         self.parent = parent
 
+        # Local variables for vpzo direction
+        self.vpzo_down  = 0
+        self.vpzo_up    = 0
+        
+        # Local variables for stepper motor direction
+        self.step_up    = 0
+        self.step_down  = 0
+
         # Initialize MeasGUI widgets
         self.initializer = HomepageWidgets(root, parent)
         self.initializer.initialize_widgets(self)
         self.initializer.publish(self)
         
+        # Initialize the file drop-down menu
         self.DropDownMenu()
-        
-        # Local variables for distnace and adc current readings
-        self.distance   = 0.0
-        self.adc_curr   = 0.0
-        
-        # Local variables for vpzo adjusting
-        self.vpzo_down  = 0
-        self.vpzo_up    = 0
-        vpiezo_tip = 0.0
-        
-        # Local variables for stepper motor adjusting
-        self.step_up    = 0
-        self.step_down  = 0
 
+        # Initialize feedback ctrl parameters
         self.kp_label.delete(0, END)
         self.kp_label.insert(0, str(globals.Kp))
         
@@ -380,7 +376,6 @@ class MeasGUI:
         # Initialize measurement widgets
         self.update_label()
         
-
     def open_iv_window(self):
         """
         Method to open the I-V Sweep window when the "Acquire I-V" button is clicked.
@@ -389,9 +384,6 @@ class MeasGUI:
         new_window = ctk.CTkToplevel(self.root)
         IVWindow(new_window, self.parent.serial_ctrl)
         new_window.protocol("WM_DELETE_WINDOW", lambda: self.on_closing(new_window))
-
-        # Disable main window
-        #self.root.attributes("-disabled", True)
             
     def open_iz_window(self):
         """
@@ -401,16 +393,12 @@ class MeasGUI:
         new_window = ctk.CTkToplevel(self.root)
         IZWindow(new_window, self.parent.serial_ctrl)
         new_window.protocol("WM_DELETE_WINDOW", lambda: self.on_closing(new_window))
-        
-        # Disable main window
-        #self.root.attributes("-disabled", True)
 
     def on_closing(self, window):
         """
         Method to re-enable the main window when the IV or IZ window is closed.
         """
         window.destroy()
-        self.root.attributes("-disabled", False)
         self.acquire_iv_btn["state"] = "normal"
         self.acquire_iz_btn["state"] = "normal"
         
@@ -681,8 +669,7 @@ class MeasGUI:
         This is intended to rapidly move the tip down into a region where tunneling current can be achieved. 
         Once the initial threshold with a high bias voltage is reached, the process resets the bias and threshold 
         to the user selected levels, and transitions to taking smaller (~1 Angstrom) steps. 
-        This is intended to approach the sample at a slower rate and avoid 
-        crashing the tip into the sample.
+        This is intended to approach the sample at a slower rate and avoid crashing the tip into the sample.
         """
         global STOP_BTN_FLAG
         global PERIODICS_FLAG
@@ -746,7 +733,7 @@ class MeasGUI:
                 # COARSE APPROACH
                 ###############################################
                 approachProcess = True
-                # set high Vbias for coarse approach
+                # Set a high Vbias for coarse approach
                 success = self.send_msg_retry(port, globals.MSG_A, ztmCMD.CMD_SET_VBIAS.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_DONE.value, 0, globals.APPROACH_COARSE_BIAS, 0)
                 
                 if not success:
@@ -777,22 +764,22 @@ class MeasGUI:
                 ###############################################
                 # FINE APPROACH
                 ###############################################  
-                # check if coarse approach was exited due to Stop btn              
+                # Check if coarse approach was exited due to Stop btn              
                 if(STOP_BTN_FLAG == False):
-                    # set Vbias to user-selected value
+                    # Set Vbias to user-selected value
                     success = self.send_msg_retry(port, globals.MSG_A, ztmCMD.CMD_SET_VBIAS.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_DONE.value, 0, vbias_save, 0)
                 
                     if not success:
                         messagebox.showerror("ERROR", "There was an error starting the tip approach. Please try again.") 
                 
-                    # wait for any extra noise from the high bias/stepper motor to settle
+                    # Wait for any extra noise from the high bias/stepper motor to settle
                     time.sleep(0.5)
 
                     approachProcess = True
                 else:
                     approachProcess = False
 
-                # engage fine approach                 
+                # Engage fine approach                 
                 while(approachProcess):
                     if STOP_BTN_FLAG == 1:
                         plt.ioff()
@@ -816,7 +803,7 @@ class MeasGUI:
                             else:
                                 messagebox.showerror("ERROR", "Error. Unable to adjust the stepper motor.")
                         else:       
-                            # delay stepping down by stepDownThreshold samples                   
+                            # Delay stepping down by stepDownThreshold samples                   
                             #if(stepDownDelayCounter == stepDownThreshold-1):
                             vpiezo_tip, total_steps = self.auto_move_tip(total_steps, globals.APPROACH_STEP_SIZE_NM, globals.DIR_DOWN)
                             #stepDownDelayCounter = (stepDownDelayCounter + 1) % stepDownThreshold
@@ -828,7 +815,6 @@ class MeasGUI:
                     messagebox.showinfo("TUNNELING APPROACH", f"Success. The tunneling approach has ended. Received {curr_data} nA at Piezo Voltage of {Vpiezo_temp} V.")                   
                 STOP_BTN_FLAG = 0
                 plt.ioff()
-                #self.feedback_ctrl_btn.configure(state="normal")
                 self.stop_leds()
                 self.initializer.enable_widgets(self)
             else:
@@ -884,7 +870,6 @@ class MeasGUI:
                 return
             
             self.parent.clear_buffer()
-
             # Get a measurement from the MCU, send_msg_retry() will change the val of the global vars curr, vbias, vpzo
             success = self.send_msg_retry(port, globals.MSG_C, ztmCMD.CMD_REQ_DATA.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_MEASUREMENTS.value)
             
@@ -1032,8 +1017,7 @@ class MeasGUI:
         port = self.parent.serial_ctrl.serial_port
         piezoSet = False
 
-        # Retract piezo in small increments
-                                   
+        # Retract piezo in small increments                        
         piezoStep = (vpiezo_tip - globals.VPIEZO_APPROACH_MIN)/ 32
         while (vpiezo_tip > globals.VPIEZO_APPROACH_MIN):
             vpiezo_tip -= piezoStep
@@ -1043,7 +1027,6 @@ class MeasGUI:
                 piezoSet = self.send_msg_retry(port, globals.MSG_A, ztmCMD.CMD_PIEZO_ADJ.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_DONE.value, 0, 0, vpiezo_tip)
             piezoSet = False
         return vpiezo_tip
-
 
 ############################################# CAPACITANCE APPROACH #################################################
     def cap_approach(self):
@@ -1077,7 +1060,7 @@ class MeasGUI:
             
             if success:
                 #########
-                # Init GUI stuff
+                # Init graph and necessary GUI widgets
                 self.parent.graph_gui.reset_graph()
                 plt.ion()
                 self.startup_leds()
@@ -1090,11 +1073,11 @@ class MeasGUI:
                     return
 
                 # Using deque for efficient circular buffer management
-                    # load fft_buffer with zeros
+                    # Load fft_buffer with zeros
                 fft_buffer = deque([0] * globals.FFT_AVG_LENGTH, maxlen=globals.FFT_AVG_LENGTH)
-                    # load delay_line with first fft msmt
+                    # Load delay_line with first fft msmt
                 delay_line = deque([fft_meas] * (globals.DELAY_LINE_LEN), maxlen=globals.DELAY_LINE_LEN)
-                    # load difference buffer with zeros
+                    # Load difference buffer with zeros
                 diff_buffer = deque([0] * (globals.DIFF_AVG_BUF_LEN), maxlen=globals.DIFF_AVG_BUF_LEN)
                 
                 
@@ -1112,7 +1095,7 @@ class MeasGUI:
                 while not_done:
                                           
                     # Measure fft peak and update the peaks buffer
-                    # gather 5 FFT's
+                    # Gather 5 FFT's
                     while(fft_count < globals.FFT_AVG_LENGTH):
                         fft_sample = self.get_fft_peak()
                         if fft_sample is None:
@@ -1120,29 +1103,29 @@ class MeasGUI:
 
                         fft_buffer[fft_count] = fft_sample
                         fft_count += 1
-                    # reset counter    
+                    # Reset counter    
                     fft_count = 0    
                     # Calculate the average of the peak measurements
                     # call this 'fft_peak' for now
                     fft_peak = self.get_avg_meas(fft_buffer)    
                       
-                    # calculate new difference
+                    # Calculate new difference
                     diff = fft_peak - delay_line[delay_index]
-                    # update average difference
+                    # Update average difference
                     avg_diff = avg_diff + (diff - diff_buffer[diff_index])/globals.DIFF_AVG_BUF_LEN 
-                    # load the avg FFT into delay line
+                    # Load the avg FFT into delay line
                     delay_line[delay_index] = fft_peak
-                    # load difference buffer
+                    # Load difference buffer
                     diff_buffer[diff_index] = diff
                     
-                    # update indices
+                    # Update indices
                     diff_index = (diff_index + 1) %  globals.DIFF_AVG_BUF_LEN       
                     delay_index = (delay_index + 1) %  globals.DELAY_LINE_LEN 
 
                     # Check if difference exceeds the threshold
                     if diff > globals.CRIT_CAP_SLOPE:
                         not_done = False                    
-                        # clear vbias
+                        # Clear vbias
                         vbias_save = 0.0
                     else:
                         self.send_msg_retry(port, globals.MSG_D, ztmCMD.CMD_STEPPER_ADJ.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_DONE.value, globals.EIGHTH_STEP, globals.DIR_DOWN, globals.CAP_APPROACH_NUM_STEPS)
@@ -1160,7 +1143,7 @@ class MeasGUI:
                         break
                 # Process when the capacitance approach is complete
                 STOP_BTN_FLAG = 0   
-                # set flag false
+                # Set flag false
                 CAP_APPR_FLAG = 0
                 plt.ioff()
                 self.stop_leds()
@@ -1358,11 +1341,17 @@ class MeasGUI:
 
     def savePiezoValue(self, _=None):         
         """
-        Method to save the piezo voltage delta value; the
-        value cannot be less than 3 mV.
+        Saves the piezo voltage delta value, ensuring that it is not less than a 
+        specified minimum value (3 mV by default). If the input voltage is below 
+        this threshold, the value is reset to the minimum, and an error message is shown.
+
+        This method also updates the display and distance calculation based on the 
+        input voltage.
 
         Args:
-            event (_type_): [ADD DESCRIPTION HERE.]
+            _ (optional): An optional event parameter, typically passed during event 
+                        handling. This argument is not used in the method but is 
+                        included to maintain compatibility with event binding.
         """
         if self.check_connection():
             self.root.focus()
@@ -1447,7 +1436,6 @@ class MeasGUI:
                 messagebox.showerror("INVALID", "Invalid range. Stay within 0 - 10 V.")
                 return
 
-            # Clear buffer
             self.parent.clear_buffer()
                 
             start_time = time.time()
@@ -1479,11 +1467,20 @@ class MeasGUI:
                 
     def saveCurrentSetpoint(self, _=None): 
         """
-        Function to save the user inputted value of current setpoint to use for 
-        the tip approach algorithm. The valid range is 0.1 nA to 10 nA.
-        
+        Saves the user-inputted current setpoint value to be used in the tip approach 
+        algorithm. The function ensures the value is within the valid range of 
+        0.1 nA to 10 nA. Depending on whether the setpoint is positive or negative, 
+        corresponding flags are set to indicate the current polarity.
+
         Args:
-            _ (_type_): [ADD DESCRIPTION HERE.]
+            _ (optional): An optional event parameter, typically passed during event 
+                        handling. This argument is not used in the method but is 
+                        included to maintain compatibility with event binding.
+
+        Returns:
+            bool: True if the current setpoint is within a valid range and the 
+                appropriate flag is set. False if the setpoint is invalid, 
+                resetting the input to 0.000 and clearing the flags.
         """
         global curr_setpoint 
         global POS_CURR_SETPOINT_FLAG
@@ -1512,11 +1509,14 @@ class MeasGUI:
 
     def saveCurrentOffset(self, _=None): 
         """
-        Save current offset and uses to offset the graph.
-        QUESTION: Range for current offset?
+        Saves the user-inputted current offset value, which is used to adjust 
+        the graph's offset. If the input is empty or invalid, the offset is reset 
+        to 0.000, and an error message is displayed if necessary.
 
         Args:
-            event (_type_): [ADD DESCRIPTION HERE.]
+            _ (optional): An optional event parameter, typically passed during event 
+                        handling. This argument is not used in the method but is 
+                        included to maintain compatibility with event binding.
         """
         if self.check_connection():
             self.root.focus()
@@ -1539,11 +1539,20 @@ class MeasGUI:
 
     def saveSampleBias(self, _=None): 
         """
-        Function to send vbias msg to the MCU and waits for a DONE response, 
-        witha  valid range of -10 V to 10 V.
+        Saves the user-inputted bias voltage value to be used in the tip approach 
+        algorithm. The function ensures the value is within the valid range of 
+        -10 V to 10 V. Depending on whether the bias voltage is positive or negative, 
+        corresponding flags are set to indicate the bias voltage polarity.
 
         Args:
-            event (_type_): [ADD DESCRIPTION HERE.]
+            _ (optional): An optional event parameter, typically passed during event 
+                        handling. This argument is not used in the method but is 
+                        included to maintain compatibility with event binding.
+
+        Returns:
+            bool: True if the bias voltage is within a valid range and the 
+                appropriate flag is set. False if the bias voltage is invalid, 
+                resetting the input to 0.000 and clearing the flags.
         """
         global vbias_save
         global vbias_done_flag
@@ -1594,7 +1603,6 @@ class MeasGUI:
                 self.label6.delete(0, END)
                 self.label6.insert(0, vbias_save)
                     
-                # Clear buffer
                 self.parent.clear_buffer()
                          
                 start_time = time.time()
@@ -1631,12 +1639,20 @@ class MeasGUI:
             
     def saveSampleRate(self, _=None):
         """
-        Saves sample rate as an integer and sends that to the MCU.
+        Saves the selected sample rate as an integer value and sends it to the 
+        ZTM controller for configuration. The function attempts to 
+        send the new sample rate multiple times within a timeout period until 
+        the ZTM controller acknowledges the change.
 
         Args:
-            _ (_type_): [ADD DESCRIPTION HERE.]
+            _ (optional): An optional event parameter, typically passed during event 
+                        handling. This argument is not used in the method but is 
+                        included to maintain compatibility with event binding.
+
+        Raises:
+            Displays an informational message if the sample rate change is not 
+            processed within the timeout period.
         """
-        global sample_rate_done_flag
         global sample_rate_save
         
         if self.check_connection():
@@ -1654,8 +1670,7 @@ class MeasGUI:
                 sample_rate_save = 10000
             elif self.sample_rate_var.get() == "1 kHz":
                 sample_rate_save = 1000
-
-            # Clear buffer
+                                                                
             self.parent.clear_buffer()
                         
             start_time = time.time()
@@ -1665,22 +1680,29 @@ class MeasGUI:
                 success = self.send_msg_retry(port, globals.MSG_B, ztmCMD.CMD_SET_ADC_SAMPLE_RATE.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_DONE.value, sample_rate_save)
             
             if success:
-                sample_rate_done_flag = 1
                 return
             else:
-                sample_rate_done_flag = 0
                 messagebox.showinfo("Information", "Did not process change in value within timeout period. Please try again.")
                 
     def saveSampleSize(self, _=None):
         """
-        Send sample size as an integer and sends that to the MCU with a
-        valid range of 1 to 1024.
+        Saves the user-inputted sample size as an integer and sends it to the 
+        ZTM controller for configuration. The valid range for the sample size 
+        is 1 to 1024. If the input is out of this range, it will be adjusted 
+        to the nearest valid value, and an error message will be displayed.
 
         Args:
-            _ (_type_): [ADD DESCRIPTION HERE.]
+            _ (optional): An optional event parameter, typically passed during event 
+                        handling. This argument is not used in the method but is 
+                        included to maintain compatibility with event binding.
+
+        Raises:
+            Displays an error message if the input value is invalid or not within 
+            the range of 1 to 1024. If the sample size change is not processed 
+            within the timeout period, an informational message is shown.
         """
         global sample_size_save
-        global sample_size_done_flag
+
         if self.check_connection():
             self.root.focus()
             return
@@ -1703,7 +1725,6 @@ class MeasGUI:
                     self.sample_size_entry.delete(0, END)
                     self.sample_size_entry.insert(0, sample_size_str)
 
-                # Clear buffer
                 self.parent.clear_buffer()
                          
                 start_time = time.time()
@@ -1713,10 +1734,8 @@ class MeasGUI:
                     success = self.send_msg_retry(port, globals.MSG_B, ztmCMD.CMD_SET_ADC_SAMPLE_SIZE.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_DONE.value, sample_size_save)
                 
                 if success:
-                    sample_size_done_flag = 1
                     return
                 else:
-                    sample_size_done_flag = 0
                     messagebox.showinfo("Information", "Did not process change in value within timeout period. Please try again.")
             except ValueError:
                 self.root.focus()
@@ -1725,10 +1744,16 @@ class MeasGUI:
                         
     def saveStepperMotorAdjust(self, _=None):
         """
-        Saves adjust stepper motor step size as an integer 'fine_adjust_step_size' .
+        Saves the adjustment step size for the stepper motor as an integer value 
+        stored in `fine_adjust_step_size`. The step size is determined based on 
+        the user's selection, which can be "Full", "Half", "Quarter", or "Eighth" 
+        steps. The corresponding approximate step distance is also calculated 
+        and displayed to the user.
 
         Args:
-            _ (_type_): [ADD DESCRIPTION HERE.]
+            _ (optional): An optional event parameter, typically passed during event 
+                        handling. This argument is not used in the method but is 
+                        included to maintain compatibility with event binding.
         """
         if self.check_connection():
             return
@@ -1787,7 +1812,6 @@ class MeasGUI:
                 fine_adjust_dir = globals.DIR_DOWN
                 self.step_down  = 0
 
-            # Clear buffer
             self.parent.clear_buffer()
                         
             start_time = time.time()
@@ -1804,14 +1828,13 @@ class MeasGUI:
         """
         Function to save the new home position, where the tip is at when the function is called.
         """
-        global total_steps
+        global stepper_motor_steps
         
         if self.check_connection():
             return
         else:
             port = self.parent.serial_ctrl.serial_port
             
-            # Clear buffer
             self.parent.clear_buffer()
             
             start_time = time.time()
@@ -1820,7 +1843,7 @@ class MeasGUI:
             while not success and (time.time() - start_time) < globals.TIMEOUT:
                 success = self.send_msg_retry(port, globals.MSG_C, ztmCMD.CMD_STEPPER_RESET_HOME_POSITION.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_DONE.value)
             if success:
-                total_steps = 0
+                stepper_motor_steps = 0
                 return
             else:
                 messagebox.showinfo("Information", "Did not process change in value within timeout period. Please try again.")
@@ -1828,9 +1851,6 @@ class MeasGUI:
     def return_home(self):
         """
         Method to return to the home position.
-
-        Returns:
-            _type_: _description_
         """
         timeout = globals.TIMEOUT
         
@@ -1850,26 +1870,22 @@ class MeasGUI:
                 success = self.send_msg_retry(port, globals.MSG_C, ztmCMD.CMD_RETURN_TIP_HOME.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_DONE.value)
 
             # If a home position has not been set, error message and return from function
-            if total_steps == None:
+            if stepper_motor_steps == None:
                 messagebox.showerror("INVALID", f"No home position has been set.")
                 return
-            '''
-            elif home_pos_total_steps == curr_pos_total_steps:
-                messagebox.showerror("INVALID", f"Stepper motor is already at home position.")
-                return
-            '''
 
     def check_connection(self):
         """
         Function to check that there is a valid port connection.
 
         Returns:
-            boolean: [ADD DESCRIPTION HERE.]
+            boolean: True if there is not a valid port connection, false 
+            if there is a valid connection.
         """
-        global startup_flag
+        global STARTUP_FLAG
         
         port = self.parent.serial_ctrl.serial_port
-        if port is None or startup_flag == 0:
+        if port is None or STARTUP_FLAG == 0:
             InfoMsg = f"ERROR. Connect to COM PORT."
             messagebox.showerror("Connection Error", InfoMsg)
             return True
@@ -1878,7 +1894,7 @@ class MeasGUI:
 
     def update_label(self):
         """
-        Method to update the value of ADC current in label 2.
+        Method to update the value of ADC current in label 4.
         """
         global curr_data
         global vp_V
@@ -1894,15 +1910,32 @@ class MeasGUI:
         
         self.totalDistance()
 
+        self.totalDistance()        # Calculates the total distance during a process
+
+    def totalDistance(self):
+        """
+        Method to calculate the total distance in nm based on the number of
+        stepper motor steps.
+        """
+        global total_distance
+        global stepper_motor_steps
+        global vp_V
+
+        total_distance = (-globals.FULL_STEP_DISTANCE * stepper_motor_steps) * (-globals.PIEZO_EXTN_RATIO * vp_V)
+        
+        self.total_distance_label.configure(text=f"{total_distance:.3f} nm")
+
     def save_notes(self, _=None):
         """
         Method to save the notes inputted by the user in the notes widget.
 
         Args:
-            _ (_type_, optional): [ADD DESCRIPTION HERE.] Defaults to None.
+            _ (optional): An optional event parameter, typically passed during event 
+                        handling. This argument is not used in the method but is 
+                        included to maintain compatibility with event binding.
 
         Returns:
-            note (string): _description_
+            note (string): The user inputted note to add on an exported CSV file.
         """
         if self.check_connection():
             self.root.focus()
@@ -1918,10 +1951,12 @@ class MeasGUI:
         Method to save the date inputted by the user in the notes widget.
 
         Args:
-            _ (_type_, optional): [ADD DESCRIPTION HERE.] Defaults to None.
+            _ (optional): An optional event parameter, typically passed during event 
+                        handling. This argument is not used in the method but is 
+                        included to maintain compatibility with event binding.
 
         Returns:
-            date (string): _description_
+            date (string): The user-inputted date to add on an exported CSV file.
         """
         if self.check_connection():
             self.root.focus()
@@ -1933,7 +1968,7 @@ class MeasGUI:
     
     def DropDownMenu(self):
         """
-        Method to list all the file menu options in a drop menu.
+        Method to list all the file menu options in a drop-down menu.
         """
         # Create menu bar
         self.menubar = tk.Menu(self.root)
@@ -1969,7 +2004,7 @@ class MeasGUI:
     
     def export_data(self):
         """
-        Menu option to export graph data into a CSV file.
+        Export graph data into a CSV file.
         """
         file_path = filedialog.asksaveasfilename(defaultextension=".csv", filetypes=[("CSV files", "*.csv"), ("All files", "*.*")])
         if file_path:
@@ -1979,9 +2014,8 @@ class MeasGUI:
                 header_date = self.save_date()
 
                 # Get the last 1000 data points from deque buffers
-                #num_points_to_export = 1000
-                recent_times = list(self.parent.graph_gui.time_data) #[-num_points_to_export:]
-                recent_currents = list(self.parent.graph_gui.y_data) #[-num_points_to_export:]
+                recent_times = list(self.parent.graph_gui.time_data) 
+                recent_currents = list(self.parent.graph_gui.y_data) 
 
                 # Conjoining and formatting data
                 headers = ["Time", "Current (nA)"]
@@ -1999,6 +2033,11 @@ class MeasGUI:
             messagebox.showinfo("Export Data", f"Data exported as {file_path}")
     
     def cache_data(self):
+        """
+        During a process the user has the option to cache-data. In order to optimize
+        the application, old data is thrown away after the buffer reaches a certain limit.
+        If the user wishes to keep old data, the user can store it in this CSV file.
+        """
         global curr_data
         
         if self.cache_data_var.get():
@@ -2015,11 +2054,7 @@ class MeasGUI:
 
                     # Optionally add the current data point
                     writer.writerow([self.parent.graph_gui.formatted_time, curr_data])
-                    
-                    # Ensure data is written immediately
-                    #file.flush()
-        
-    
+
 ###################################################################################################################
 #                                                 GraphGUI CLASS                                                  #
 ###################################################################################################################
@@ -2029,7 +2064,7 @@ class GraphGUI:
     """
     def __init__(self, root, meas_gui, max_data_points=12000):
         """
-        This initializes the graph widget for the three different processes.
+        This initializes the graph widget for the different processes.
         
         Args:
             root (_type_): _description_
@@ -2064,6 +2099,7 @@ class GraphGUI:
         *Updates every 36ms
         """
         global curr_data
+        global cap_data
         global sample_size_save
         global cap_data
         global PERIODICS_FLAG
@@ -2093,17 +2129,13 @@ class GraphGUI:
         # Controls how much time is shown within the graph, currently displays the most recent 10 seconds
         self.ax.set_xlim(datetime.datetime.now() - datetime.timedelta(seconds=rollover_time), datetime.datetime.now())
         
-        # Local variables - calculate update interval based on sample size
-        A = 400    # Scaling factor    # mess with this a bit more
-        k = 0.005   # Decay rate
-        B = update_interval = 10     # Minimum interval and default value
-        
         if PERIODICS_FLAG:
             if sample_size_save == None:
-                update_interval = B
+                update_interval = 10
             else:
                 A = 900     # Scaling factor    
                 k = 0.005   # Decay rate
+                B = 10
                 update_interval = max(int(A* math.exp(-k * sample_size_save) + B), B)     # Minimum interval
 
         elif TUNN_APPR_FLAG:
@@ -2143,8 +2175,8 @@ class GraphGUI:
             
             # Avoid singular transformation
             if min_y == max_y:
-                min_y -= 1.0  # or a small value like 0.1
-                max_y += 1.0  # or a small value like 0.1
+                min_y -= 1.0  
+                max_y += 1.0  
             
             # Apply a buffer to prevent the graph from being too tightly zoomed
             y_buffer = (max_y - min_y) * 0.1
