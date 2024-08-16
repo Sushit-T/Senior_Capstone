@@ -718,9 +718,13 @@ class IZWindow:
         self.canvas.flush_events()
 
     def get_vpiezo_tip(self):
+        global vpiezo_tip
+
         return vpiezo_tip
     
     def update_vpiezo_tip(self, new_val):
+        global vpiezo_tip
+        
         vpiezo_tip = new_val
         return
         

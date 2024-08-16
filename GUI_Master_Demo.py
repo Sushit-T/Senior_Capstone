@@ -1064,6 +1064,7 @@ class MeasGUI:
         global STOP_BTN_FLAG
         global CAP_APPR_FLAG
         global vbias_save
+        global total_steps
         
         if self.check_connection():
             return
@@ -1146,6 +1147,7 @@ class MeasGUI:
                         vbias_save = 0.0
                     else:
                         self.send_msg_retry(port, globals.MSG_D, ztmCMD.CMD_STEPPER_ADJ.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_DONE.value, globals.EIGHTH_STEP, globals.DIR_DOWN, globals.CAP_APPROACH_NUM_STEPS)
+                        total_steps += globals.CAP_APPROACH_NUM_STEPS * 0.125
 
                     self.convert_curr_to_cap()
                     self.update_label()
@@ -1774,6 +1776,7 @@ class MeasGUI:
         """
         Send stepper motor adjust msg to the MCU.
         """
+        global total_steps
         if self.check_connection():
             return
         else:
@@ -1796,10 +1799,28 @@ class MeasGUI:
             while not success and (time.time() - start_time) < globals.TIMEOUT:
                 success = self.send_msg_retry(port, globals.MSG_D, ztmCMD.CMD_STEPPER_ADJ.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_DONE.value, self.fine_adjust_step_size, fine_adjust_dir, globals.NUM_STEPS)
             if success:
+                self.update_total_steps(globals.NUM_STEPS, self.fine_adjust_step_size, fine_adjust_dir)
                 return
             else:
                 messagebox.showinfo("Information", "Did not process change in value within timeout period. Please try again.")
               
+    def update_total_steps(self, num_steps, step_sz, dir):
+        global total_steps
+
+        if(not dir):
+            dir = -1
+
+        if(step_sz == globals.EIGHTH_STEP):
+            total_steps += 0.125 * num_steps * dir
+        elif(step_sz == globals.QUARTER_STEP):
+            total_steps += 0.250 * num_steps * dir
+        elif(step_sz == globals.HALF_STEP):
+            total_steps += 0.500 * num_steps * dir
+        elif(step_sz == globals.FULL_STEP):
+            total_steps += 1.000 * num_steps * dir
+        
+        self.update_label()
+
     def save_home(self):
         """
         Function to save the new home position, where the tip is at when the function is called.
