@@ -12,21 +12,11 @@ import threading
 import queue
 from tkinter import messagebox 
 
-# Import python file
+# File import
 import globals
 
 class SerialCtrl:
     def __init__(self, port, baudrate):
-        """
-        Initializes the SerialCtrl class, setting up the serial communication 
-        parameters, threads, and queues for handling data transmission and reception.
-
-        Args:
-            port (str): The COM port or device name to which the serial communication 
-                        will be established (e.g., "COM3" or "/dev/ttyUSB0").
-            baudrate (int): The baud rate for the serial communication, which 
-                            determines the speed of data transmission (e.g., 9600, 115200).
-        """
         self.port = port
         self.baudrate = baudrate
         self.serial_port = None
@@ -39,20 +29,10 @@ class SerialCtrl:
 
     def ztmGetMsg(self):
         """
-        Attempts to read a message from the ZTM controller through the serial port. 
-        The function will try at most 10 times to retrieve a message. If the maximum 
-        number of attempts is reached without success, the function returns `False`.
+        Attempt to read a message from the ZTM controller.
 
         Returns:
-            response (bytes or bool): 
-                - The message read from the serial port as a bytes object if successful.
-                - `False` if the maximum number of attempts is reached without successfully 
-                reading a message.
-        
-        Raises:
-            serial.SerialException: If an error occurs while reading from the serial port, 
-                                    an error message is displayed, and the process is 
-                                    terminated. 
+            response (bytes): _description_
         """
         attempts = 0
 
@@ -67,18 +47,7 @@ class SerialCtrl:
         
     def receive_serial(self):
         """
-        Continuously reads data from the serial port while `receive_running` is True. 
-        The function checks if there is data available to read, and if so, reads the 
-        data and processes it by placing it into the `receive_queue`.
-
-        Returns:
-            raw_data (bytes or None): The raw data read from the serial port if data 
-                                    is available, or `None` if no data is read.
-
-        Raises:
-            serial.SerialException: If an error occurs while reading from the serial port, 
-                                    an error message is displayed, and the process is 
-                                    terminated.    
+        Continuously reads data from the serial port and processes it.
         """
         while self.receive_running:
             try:
@@ -92,22 +61,11 @@ class SerialCtrl:
 
     def send_serial(self):
         """
-        Continuously sends data from the send queue to the serial port while 
-        `send_running` is True. The function attempts to retrieve data from the 
-        send queue with a short timeout. If data is available, it is written to the 
-        serial port. If the send queue is empty, the function continues looping 
-        until data is available or until `send_running` is set to False.
-
-        Raises:
-            queue.Empty: If the send queue is empty and no data is retrieved within 
-                        the specified timeout, the loop continues without raising an error.
-            serial.SerialException: If an error occurs while writing to the serial port, 
-                                    an error message is displayed, and the sending process 
-                                    continues or stops depending on `send_running`.
+        Continuously sends data from the send queue to the serial port.
         """
         while self.send_running:
             try:
-                data = self.send_queue.get(timeout=0.01)  
+                data = self.send_queue.get(timeout=0.01)    # Wait for data with a timeout
                 if data:
                     self.serial_port.write(data)
             except queue.Empty:
@@ -116,20 +74,6 @@ class SerialCtrl:
                 messagebox.showerror("ERROR", f"Failed to write to serial port: {e}")
 
     def start(self):
-        """
-        Attempts to open the specified serial port with the configured settings and 
-        starts the threads for sending and receiving data. The function also increases 
-        the buffer sizes for both reading and writing to enhance performance.
-
-        Returns:
-            bool: True if the serial port is successfully opened and the threads are 
-                started; False if the serial port could not be opened.
-
-        Raises:
-            serial.SerialException: If an error occurs while attempting to open the 
-                                    serial port, an error message is printed, and 
-                                    the function returns False.
-        """
         try:
             print(f"Attempting to open serial port: {self.port}")
             self.serial_port = serial.Serial(
@@ -160,7 +104,7 @@ class SerialCtrl:
 
     def stop(self):
         """
-        Stops the serial communication threads and closes the serial port. 
+        Stops the serial threads.
         """
         self.send_running = False
         self.receive_running = False

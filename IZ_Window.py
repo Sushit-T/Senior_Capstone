@@ -34,16 +34,12 @@ vp_V = 0
 class IZWindow:
     def __init__(self, root, serial_ctrl):
         """
-        Initialize the IVWindow class which sets up the GUI for acquiring I-V measurements.
-
-        Args:
-            root (tkinter.Tk): The root window of the application.
-            port (str or None): The serial port to which the device is connected. If None, it indicates no connection.
+        [ADD DESCRIPTION HERE.]
         """
         self.root = root
         self.serial_ctrl = serial_ctrl
 
-        # Check if a serial connection has been established when opening the window
+        # check if a serial connection has been established when opening the window
         if self.serial_ctrl.port == None:
             messagebox.showerror("INVALID", f"No serial connection detected.\nConnect to USB via homepage and try again.") 
             self.root.destroy()
@@ -52,18 +48,18 @@ class IZWindow:
         self.root.config(bg="#d0cee2")
         self.root.geometry("750x575")   # (length x width)
 
-        # Initialize serial control
+        # initialize data and serial control
         self.ztm_serial = usbMsgFunctions(self)
         
         # Initialize the widgets
-        self.init_iz_widgets()
+        self.init_meas_widgets()
         self.init_parameters()
         self.init_graph_widgets()
         self.update_label()
         
     def start_reading(self):
         """
-        Starts reading bias voltage and current from the MCU.
+        [ADD DESCRIPTION HERE.]
         """
         if globals.STOP_ALL_FLAG:
             print("Starting to read data...")
@@ -83,8 +79,7 @@ class IZWindow:
     
     def stop_reading(self):
         """
-        Stops the ongoing data reading process, re-enables the user interface widgets, 
-        and sets a flag to indicate that the stop button has been activated.
+        [ADD DESCRIPTION HERE.]
         """
         print("Stopped reading data...")
         self.enable_widgets()
@@ -92,19 +87,7 @@ class IZWindow:
     
     def get_float_value(self, label, default_value, value_name):
         """
-        Retrieves a floating-point value from a given label's input field. If the input 
-        is invalid (i.e., cannot be converted to a float), the function returns a 
-        specified default value and logs a message indicating the use of this default.
-
-        Args:
-            label (Entry): The tkinter Entry widget from which to retrieve the value.
-            default_value (float): The default value to use if the input is invalid.
-            value_name (str): The name of the value being retrieved, used in the 
-                            log message for clarity to the user.
-
-        Returns:
-            float: The valid floating-point value from the input field or the 
-                default value if the input was invalid.
+        Function to error check user inputs.
         """
         try:
             value = float(label.get())
@@ -113,21 +96,19 @@ class IZWindow:
             value = default_value
         return value  
 
-    def init_iz_widgets(self):
+    def init_meas_widgets(self):
         """
-        Initializes the widgets needed for data collection in the GUI. This includes 
-        setting up labels, drop-down menus, and other UI elements related to the IZ
-        window.
+        [ADD DESCRIPTION HERE.]
         """
-        # Piezo extension
+        # piezo extension
         self.frame1 = LabelFrame(self.root, text="ΔZ/Piezo Extension (nm)", padx=10, pady=2, bg="gray")
         self.label1 = Label(self.frame1, bg="white", width=25)
         
-        # Piezo voltage
+        # piezo voltage
         self.frame2 = LabelFrame(self.root, text="Piezo Voltage (V)", padx=10, pady=2, bg="gray")
         self.label2 = Label(self.frame2, bg="white", width=25)
 
-        # Current
+        # current
         self.frame3 = LabelFrame(self.root, text="Current (nA)", padx=10, pady=2, bg="gray")
         self.label3 = Label(self.frame3, bg="white", width=25)
         
@@ -140,12 +121,12 @@ class IZWindow:
         self.frame5 = LabelFrame(self.root, text="Total Distance (nm)", padx=10, pady=2, bg="gray")
         self.label5 = Label(self.frame5, bg="white", width=25)
     
-        # Number of setpoints
+        # number of setpoints
         self.frame7 = LabelFrame(self.root, text="Number of Setpoints", padx=10, pady=2, bg="#A7C7E7")
         self.label9 = Entry(self.frame7, bg="white", width=30)
         self.label9.bind("<Return>", self.saveNumSetpoints)
 
-        # User notes text box
+        # user notes text box
         self.frame6 = LabelFrame(self.root, text="NOTES", padx=10, pady=5, bg="#A7C7E7")
         self.label6 = Text(self.frame6, height=7, width=30)
         self.label6.bind("<Return>", self.save_notes)
@@ -153,34 +134,31 @@ class IZWindow:
         self.label7.bind("<Return>", self.save_date)
         self.label8 = Label(self.frame6, text="Date:", height=1, width=5)
         
-        # Setup the drop option menu
+        # setup the drop option menu
         self.DropDownMenu()
         
-        # Optional graphic parameters
+        # optional graphic parameters
         self.padx = 10
         self.pady = 10
         
-        # Init buttons
+        # init buttons
         self.add_btn_image1 = ctk.CTkImage(Image.open("Images/Start_Btn.png"), size=(90,45))
         self.add_btn_image2 = ctk.CTkImage(Image.open("Images/Stop_Btn.png"), size=(90,35))
         self.add_btn_image3 = ctk.CTkImage(Image.open("Images/Start_LED.png"), size=(35,35))
         self.add_btn_image4 = ctk.CTkImage(Image.open("Images/Stop_LED.png"), size=(35,35))
         
-        # Start/stop process
         self.process_frame = LabelFrame(self.root, text="Start/Stop Process", padx=5, pady=5, bg="#d0cee2")
         self.start_btn = ctk.CTkButton(self.process_frame, image=self.add_btn_image1, text="", width=90, height=45, fg_color="#d0cee2", bg_color="#d0cee2", corner_radius=0, command=self.start_reading)
         self.stop_btn = ctk.CTkButton(self.process_frame, image=self.add_btn_image2, text="", width=90, height=35, fg_color="#d0cee2", bg_color="#d0cee2", corner_radius=0, command=self.stop_reading)
         self.green_LED = ctk.CTkLabel(self.process_frame, image=self.add_btn_image3, text="", width=35, height=35, fg_color="#d0cee2", bg_color="#d0cee2", corner_radius=0)
         self.red_LED = ctk.CTkLabel(self.process_frame, image=self.add_btn_image4, text="", width=35, height=35, fg_color="#d0cee2", bg_color="#d0cee2", corner_radius=0)
 
-        # Put on the grid all the elements
-        self.publish_iz_widgets()
+        # put on the grid all the elements
+        self.publish_meas_widgets()
     
-    def publish_iz_widgets(self):
+    def publish_meas_widgets(self):
         """
-        Publishes the widgets needed for data collection in the GUI. This includes 
-        setting up labels, drop-down menus, and other UI elements related to the IZ
-        window.
+        [ADD DESCRIPTION HERE.]
         """
         # piezo extension
         #self.frame1.grid(row=13, column=0, padx=5, pady=5, sticky=SE)
@@ -243,9 +221,10 @@ class IZWindow:
 
     def disable_widgets(self):
         """
-        Function to disable entry widgets during a seeking process.
-        Disables:
-            - delta z
+        Function to disable entry widgets when we start seeking.
+        Disabling:
+            - min voltage
+            - max voltage
             - number of setpoints
             - start button
             - stop button
@@ -258,9 +237,10 @@ class IZWindow:
 
     def enable_widgets(self):
         """
-        Function to enable entry widgets during a seeking process.
-        Disables:
-            - delta z
+        Function to enable entry widgets when the process is stopped.
+        Enabling:
+            - min voltage
+            - max voltage
             - number of setpoints
             - start button
             - stop button
@@ -281,7 +261,7 @@ class IZWindow:
     '''
     def saveMinVoltage(self, _=None):
         """
-        [ADD DESCRIPTION HERE.]                                                               
+        [ADD DESCRIPTION HERE.]
         """
         self.root.focus()
         try:
@@ -297,7 +277,7 @@ class IZWindow:
     '''
     def saveMaxVoltage(self, _=None):
         """
-        [ADD DESCRIPTION HERE.]                                                                                                                                                 
+        [ADD DESCRIPTION HERE.]
         """
         self.root.focus()
         try:
@@ -311,20 +291,6 @@ class IZWindow:
     '''
     
     def saveNumSetpoints(self, _=None):
-        """
-        Saves the number of setpoints inputted by the user. The function checks if
-        the entered value is an integer. If the input is valid, the number of setpoints
-        is saved. Otherwise, an error message is displayed.
-
-        Args:
-            _ (optional): An optional event parameter, typically passed during event 
-                        handling. This argument is not used in the method but is 
-                        included to maintain compatibility with event binding.
-
-        Raises:
-            Displays an error message if the input value is out of range or invalid, 
-            prompting the user to enter a valid value within the specified range.
-        """
         self.root.focus()
         try:
             self.num_setpoints = int(self.label9.get())
@@ -334,31 +300,21 @@ class IZWindow:
 
     def update_label(self):   
         """
-        Updates the labels for the piezo voltage and the current
-        during a process.
+        [ADD DESCRIPTION HERE.]
         """
         self.label2.configure(text=f"{vp_V:.3f} V") # piezo voltage
         self.label3.configure(text=f"{curr_data:.3f} nA") # current
 
     def get_current_label3(self):
         """
-        Gets the value of the current during the a process.
+        [ADD DESCRIPTION HERE.]
         """
         current_value = float(self.label3.cget("text").split()[0])  # assuming label3 text value is "value" nA
         return current_value
 
     def check_sweep_params(self):
         """
-        Validates the sweep parameters used for data collection, including delta z and the number
-        of setpoints. This function ensures that all parameters fall within acceptable ranges and
-        that the sweep configuration is logically valid.
-
-        Returns:
-            bool: True if all parameters are valid, False if any validation check fails.
-
-        Raises:
-            Displays appropriate error messages for invalid parameters, prompting 
-            the user to correct the sweep settings.
+        [ADD DESCRIPTION HERE.]
         """
         if self.delta_z == None:
             messagebox.showerror("INVALID", f"Invalid ∆z. Please update your paremeters.")
@@ -366,12 +322,12 @@ class IZWindow:
         
         '''
         if self.max_voltage == None or self.max_voltage <= globals.VPIEZO_MIN or self.max_voltage > globals.VPIEZO_MAX:
-            messagebox.showerror("INVALID", f"Invalid Max Voltage. Please update your parameters.") 
+            messagebox.showerror("INVALID", f"Invalid Max Voltage. Please update your paremeters.") 
             return False
         '''
         
         if self.num_setpoints == None or self.num_setpoints <= globals.NUM_SETPOINTS_MIN:
-            messagebox.showerror("INVALID", f"Invalid Number of Setpoints. Please update your parameters.") 
+            messagebox.showerror("INVALID", f"Invalid Number of Setpoints. Please update your paremeters.") 
             return False
         
         '''
@@ -464,95 +420,17 @@ class IZWindow:
     '''
     def run_piezo_sweep_process(self):
         """
-        This is the sweep process to get the current as a function of delta z. It takes
-        the user inputted number of setpoints and determines the delta z step size the
-        sweep must increment by, with a range of 0 to delta z. Once it has completed the
-        sweep process will be completed. If the user presses the 'Stop' button the sweep
-        process will halt.
-        """
-        global vp_V
-        
-        GREEN   = 1
-        RED     = 0
-        
-        self.change_LED(GREEN)
-        
-        # Set the range for delta z (the starting point '0' is self.delta_z_min)
-        self.delta_z_range = self.delta_z
-
-        # Calculate the step size
-        self.delta_v = self.delta_z_range / globals.PIEZO_EXTN_RATIO
-        self.step_distance = self.delta_v / self.num_setpoints
-        
-        # Setup plot
-        self.reset_graph()
-        plt.ion()
-        
-        # Send a message to get vpiezo
-        for i in range(0, self.num_setpoints + 1):
-            # Receive vpiezo (set in self.send_msg_retry with global 'vp_V')
-            dataSuccess = self.send_msg_retry(self.serial_ctrl.serial_port, globals.MSG_C, ztmCMD.CMD_REQ_DATA.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_MEASUREMENTS.value)
-            if not dataSuccess:
-                messagebox.showerror("INVALID", f"Error. Did not receive data from MCU.\nSweep process aborted.") 
-                self.sweep_finished()
-                return
-            
-            # Calculate the difference
-            diff_v = vp_V - self.delta_v
-            
-            if diff_v < 0:
-                messagebox.showerror("INVALID", f"Error. Voltage must be greater than the ∆voltage.") 
-                self.sweep_finished()
-                return
-            else:
-                # Update current and piezo labels
-                self.update_label()
-
-                # Store the data
-                self.store_data(self.delta_z_min)
-
-                # Increment the delta z for the sweep
-                self.delta_z_min += self.step_distance
-
-                # Update the graph
-                self.update_graph()
-
-            # If user pressed stop, break out of loop
-            if self.STOP_BTN_FLAG == 1:
-                break
-
-        self.change_LED(RED)
-        if self.STOP_BTN_FLAG == 1:
-            # Display message to user if sweep is aborted
-            messagebox.showwarning("STOP BUTTON PRESSED", f"The voltage sweep has been STOPPED.")
-        else: 
-            self.change_LED(RED)
-            # Display message to user if sweep completed
-            messagebox.showinfo("Successful Sweep", f"The voltage sweep has completed.")
-
-        self.sweep_finished()
-    
-    '''
-    def run_iz_process(self):
-        """
-        Executes the bias voltage sweep process, sending commands to the MCU to 
-        adjust the voltage and retrieve measurement data at each step. The process 
-        iterates through a defined number of setpoints, updating the graph and 
-        user interface with the collected data.
-
-        Raises:
-            Displays appropriate error or warning messages if communication with 
-            the MCU fails or if the sweep process is aborted by the user.
+        [ADD DESCRIPTION HERE.]
         """
         global vp_V
         GREEN = 1
         RED = 0
         self.change_LED(GREEN)
 
-        # Starting point for piezo sweep, set to user-input minimum voltage
+        # starting point for piezo sweep, set to user-input minimum voltage
         self.vpiezo = self.min_voltage
 
-        # Enable plot interative mode
+        # enable plot interative mode
         self.reset_graph()
         plt.ion()
 
@@ -561,21 +439,21 @@ class IZWindow:
             if self.STOP_BTN_FLAG == 1:
                 break            
 
-            # Sending vpiezo to MCU, looking for a DONE status in return
+            # sending vpiezo to MCU, looking for a DONE status in return
             success = self.send_msg_retry(self.serial_ctrl.serial_port, globals.MSG_A, ztmCMD.CMD_PIEZO_ADJ.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_DONE.value, 0, 0, self.vpiezo)
             if not success:
                 messagebox.showerror("INVALID", f"Could not verify communication with MCU.\nSweep process aborted.") 
                 self.sweep_finished()
                 return
             
-            # Sending a REQUEST_FOR_DATA command to MCU to receive current and vpiezo measurements
+            # sending a REQUEST_FOR_DATA command to MCU to receive current and vpiezo measurements
             dataSuccess = self.send_msg_retry(self.serial_ctrl.serial_port, globals.MSG_C, ztmCMD.CMD_REQ_DATA.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_MEASUREMENTS.value)
             if not dataSuccess:
                 messagebox.showerror("INVALID", f"Did not receive data from MCU.\nSweep process aborted.") 
                 self.sweep_finished()
                 return
 
-            # Updates labels with measurements received from MCU
+            # updates labels with measurements received from MCU
             self.update_label()
 
             if i > self.x_axis_display_max_number_of_points:
@@ -584,29 +462,29 @@ class IZWindow:
             # Store the data
             self.store_data(vp_V)
 
-            # Increment the piezo voltage for the sweep
+            # increment the piezo voltage for the sweep
             self.vpiezo += self.volt_per_step
         self.update_graph()
 
         if self.STOP_BTN_FLAG == 1:
             self.change_LED(RED)
-            # Display message to user if sweep is aborted
+            # display message to user if sweep is aborted
             messagebox.showwarning("STOP BUTTON PRESSED", f"The voltage sweep has been STOPPED.")
         else: 
             self.change_LED(RED)
-            # Display message to user if sweep completed
+            # display message to user if sweep completed
             messagebox.showinfo("Successful Sweep", f"The voltage sweep has completed.")
 
         self.sweep_finished()
+    '''
     
     def sweep_finished(self):
         """
-        Brings the GUI display back to its state when it is not
-        running a process.
+        [ADD DESCRIPTION HERE.]
         """
-        # Disable plot interative mode
+        # disable plot interative mode
         plt.ioff()
-        # Reset button states
+        # # reset button states
         RED = 0
         self.change_LED(RED)
         self.enable_widgets()
@@ -614,14 +492,7 @@ class IZWindow:
 
     def change_LED(self, color):
         """
-        Changes the displayed LED in the user interface based on the specified color. 
-        The function removes the currently displayed LED and replaces it with the 
-        appropriate one based on if a process is running or not.
-
-        Args:
-            color (int): An integer indicating which LED to display. 
-                        - `0` displays the red LED.
-                        - `1` displays the green LED.        
+        [ADD DESCRIPTION HERE.]
         """
         if color == 0:
             self.green_LED.grid_remove()
@@ -632,8 +503,8 @@ class IZWindow:
 
     def send_msg_retry(self, port, msg_type, cmd, status, status_response, *params, max_attempts=globals.MAX_ATTEMPTS):
         """
-        Function to send a message to the ZTM controller and retry if it does not receive 
-        the expected response.
+        Function to send a message to the MCU and retry if we do
+        not receive expected response.
 
         Args:
             port (Serial): Port the serial is communicating with.
@@ -642,7 +513,6 @@ class IZWindow:
             status (byte): Sent status byte.
             status_response (byte): Expected status response byte.
             max_attempts (int, optional): Number of maximum attempts that the message will be sent. Defaults to 10.
-        
         Returns:
             float: Depending on the status response, the function will return a specific value or values.
         """
@@ -674,7 +544,7 @@ class IZWindow:
                 # Unpack data and display on the GUI
                 if testMsg:
                     testMsg_hex = list(testMsg)
-                    # Checks if status byte read is the same as status byte expected AND that the response is 11 bytes long
+                    # checks if status byte read is the same as status byte expected AND that the response is 11 bytes long
                     if testMsg_hex[status_byte] == status_response and len(testMsg) == msg_bytes:
                         unpackResponse = self.ztm_serial.unpackRxMsg(testMsg)
                         
@@ -696,15 +566,7 @@ class IZWindow:
 
     def save_notes(self, _=None):
         """
-        Method to save the notes inputted by the user in the notes widget.
-
-        Args:
-            _ (optional): An optional event parameter, typically passed during event 
-                        handling. This argument is not used in the method but is 
-                        included to maintain compatibility with event binding.
-
-        Returns:
-            note (string): The user inputted note to add on an exported CSV file.
+        [ADD DESCRIPTION HERE.]
         """
         self.root.focus()
         note = self.label6.get(1.0, ctk.END)
@@ -713,15 +575,7 @@ class IZWindow:
     
     def save_date(self, _=None):
         """
-        Method to save the date inputted by the user in the notes widget.
-
-        Args:
-            _ (optional): An optional event parameter, typically passed during event 
-                        handling. This argument is not used in the method but is 
-                        included to maintain compatibility with event binding.
-
-        Returns:
-            date (string): The user-inputted date to add on an exported CSV file.
+        [ADD DESCRIPTION HERE.]
         """
         self.root.focus()
         date = self.label7.get()
@@ -729,7 +583,7 @@ class IZWindow:
         
     def DropDownMenu(self):
         """
-        Method to list all the file menu options in a drop-down menu.
+        [ADD DESCRIPTION HERE.]
         """
         self.menubar = tk.Menu(self.root)
         
@@ -746,7 +600,7 @@ class IZWindow:
     
     def save_graph(self):
         """
-        Saves the current graph image with a default file name.
+        [ADD DESCRIPTION HERE.]
         """
         downloads_folder = os.path.join(os.path.expanduser("~"), "Downloads")
         default_filename = os.path.join(downloads_folder, "graph.png")
@@ -755,7 +609,7 @@ class IZWindow:
         
     def save_graph_as(self):
         """
-        Saves the current graph image with a user-specified file name.
+        [ADD DESCRIPTION HERE.]
         """
         file_path = filedialog.asksaveasfilename(defaultextension=".png", filetypes=[("PNG files", "*.png"), ("All files", "*.*")])
         if file_path:
@@ -764,21 +618,21 @@ class IZWindow:
     
     def export_data(self):
         """
-        Exports the graph data into a CSV file.
+        Handles the exporting of data collected into a CSV file.
         """
         file_path = filedialog.asksaveasfilename(defaultextension=".csv", filetypes=[("Excel.CSV", "*.csv"), ("All files", "*.*")])
         if file_path:
             with open(file_path, 'w', newline='') as file:
-                # Collects the user input text from the notes widget
+                # collects the user input text from the notes widget
                 header_text = self.save_notes()
                 header_date = self.save_date()
 
-                # Conjoining and formatting data
+                # conjoining and formatting data
                 headers = ["Piezo Voltage (V)", "Tunneling Current (nA)"]
                 data_to_export = [headers]
                 data_to_export.extend(zip(self.x_data, self.y_data))
                 
-                # Writing to file being created
+                # writing to file being created
                 writer = csv.writer(file)
                 if header_date:
                     writer.writerow(['Date:', header_date])
@@ -794,21 +648,21 @@ class IZWindow:
         """
         self.root.destroy()
         # Re-enable the main window (homepage)
-        #parent_window = self.root.master
-        #parent_window.attributes("-disabled", False)
+        parent_window = self.root.master
+        parent_window.attributes("-disabled", False)
           
     def init_graph_widgets(self):
         """
-        This initializes the graph widget.
+        Function to initialize the data arrays and the graphical display.
         """
-        # Configures plot
+        #configures plot
         self.fig, self.ax = plt.subplots()
         self.ax.set_xlabel('∆z (nm)')
         self.ax.set_ylabel('Current (nA)')
         self.fig.set_figwidth(7)
         self.fig.set_figheight(4.5)
 
-        # Initializes graphical data    
+        # initializes graphical data    
         self.y_data = []
         self.x_data = []
         self.line, = self.ax.plot([], [], 'r-')
@@ -817,23 +671,21 @@ class IZWindow:
         self.canvas = FigureCanvasTkAgg(self.fig, master=self.root)
         self.canvas.get_tk_widget().grid(row=1, column=0, columnspan=10, rowspan=8, padx=10, pady=10)
 
-        # Number of points displayed on the graph at a time, may change as desired
+        # number of points displayed on the graph at a time, may change as desired
         self.x_axis_display_max_number_of_points = 200
 
     def store_data(self, xAxisDataPoint):
         """
         This will update the visual graph with the data points obtained during
         the Piezo Voltage Sweep. The data points are appended to the data arrays.
-                                                                           
 
         Args:
             xAxisDataPoint (_type_): _description_
-                                                                                    
         """
-        # Fetch data from label 3
+        # fetch data from label 3
         current_data = self.get_current_label3()
         
-        # Update data with next data points
+        # update data with next data points
         self.y_data.append(current_data)
         self.x_data.append(xAxisDataPoint)
     
@@ -844,6 +696,7 @@ class IZWindow:
 
         # set x-axis limits for tracking data visually
         self.ax.set_xlim(self.delta_z_min - 0.001, self.delta_z + 0.001)
+
         self.ax.autoscale_view()
         
         # redraw canvas

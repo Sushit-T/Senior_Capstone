@@ -13,28 +13,23 @@ from PIL import Image
 class HomepageWidgets:
     def __init__(self, root, parent):
         """
-        Initializes the HomepageWidgets class, setting up the root and parent 
-        attributes that are essential for managing the widget layout and interactions.
+        Initialization of the class.
 
         Args:
-            root (Tk or Toplevel): The root window or main container for the widgets.
-            parent (object): The parent object or controller that manages the 
-                             overall application or GUI framework. This is typically 
-                             used for accessing shared resources or methods.
+            root (_type_): _description_
+            parent (_type_): _description_
         """
         self.root = root
         self.parent = parent
 
     def initialize_widgets(self, meas_gui):
         """
-        Initializes the widgets needed for data collection in the GUI. This includes 
-        setting up labels, drop-down menus, and other UI elements.
+        Initializes widgets needed for data collection.
 
         Args:
-            meas_gui (object): The GUI object that contains the root window and other 
-                            necessary attributes for managing the user interface 
-                            components.
+            meas_gui (_type_): _description_
         """
+
         small_font = ("Helvetica", 12)
         
         # Sample rate drop-down list   ### ADJUST LATER
@@ -50,26 +45,30 @@ class HomepageWidgets:
         meas_gui.sample_size_entry = Entry(meas_gui.sample_size, bg="white", width=26)
         meas_gui.sample_size_entry.bind("<Return>", meas_gui.saveSampleSize)
 
-        # Current
+        # distance  ### ADJUST LATER
+        meas_gui.frame1 = LabelFrame(meas_gui.root, text="Distance (nm)", padx=10, pady=2, bg="gray", width=20)
+        meas_gui.label1 = Label(meas_gui.frame1, bg="white", width=20)
+        
+        # current
         meas_gui.frame2 = LabelFrame(meas_gui.root, text="Current (nA)", padx=10, pady=2, bg="gray")
         meas_gui.label2 = Label(meas_gui.frame2, bg="white", width=20)
         
-        # Current setpoint
+        # current setpoint
         meas_gui.frame3 = LabelFrame(meas_gui.root, text="Current Setpoint (nA)", padx=10, pady=2, bg="#ADD8E6")
         meas_gui.label3 = Entry(meas_gui.frame3, bg="white", width=24)
         meas_gui.label3.bind("<Return>", meas_gui.saveCurrentSetpoint)
         
-        # Current offset
+        # current offset
         meas_gui.frame4 = LabelFrame(meas_gui.root, text="Current Offset (nA)", padx=10, pady=2, bg="#ADD8E6")
         meas_gui.label4 = Entry(meas_gui.frame4, bg="white", width=24)
         meas_gui.label4.bind("<Return>", meas_gui.saveCurrentOffset)
                 
-        # Sample bias
+        # sample bias
         meas_gui.frame6 = LabelFrame(meas_gui.root, text="Sample Bias (V)", padx=10, pady=2, bg="#ADD8E6")
         meas_gui.label6 = Entry(meas_gui.frame6, bg="white", width=24)
         meas_gui.label6.bind("<Return>", meas_gui.saveSampleBias)
 
-        # User notes text box
+        # user notes text box
         meas_gui.frame7 = LabelFrame(meas_gui.root, text="NOTES", padx=10, pady=5, bg="#ADD8E6")
         meas_gui.label7 = Text(meas_gui.frame7, height=7, width=30)
         meas_gui.label7.bind("<Return>", meas_gui.save_notes)
@@ -78,7 +77,7 @@ class HomepageWidgets:
         meas_gui.label9 = Label(meas_gui.frame7, padx=10, text="Date:", height=1, width=5)
         meas_gui.label8.bind("<Return>", meas_gui.save_date)
     
-        # Define images
+        # define images
         meas_gui.add_btn_image0 = ctk.CTkImage(Image.open("Images/Vpzo_Up_Btn.png"), size=(40,40))
         meas_gui.add_btn_image1 = ctk.CTkImage(Image.open("Images/Vpzo_Down_Btn.png"), size=(40,40))
         meas_gui.add_btn_image2 = ctk.CTkImage(Image.open("Images/Fine_Adjust_Btn_Up.png"), size=(50,45))
@@ -90,12 +89,14 @@ class HomepageWidgets:
         meas_gui.add_btn_image12 = ctk.CTkImage(Image.open("Images/Start_Cap_Approach.png"), size=(100,45))
         meas_gui.add_btn_image13 = ctk.CTkImage(Image.open("Images/Start_Periodic_Data.png"), size=(100,45))
         meas_gui.add_btn_image14 = ctk.CTkImage(Image.open("Images/Start_Feedback_Ctrl.png"), size=(100,45))
+    
         meas_gui.add_btn_image8 = ctk.CTkImage(Image.open("Images/Stop_LED.png"), size=(35,35))
         meas_gui.add_btn_image9 = ctk.CTkImage(Image.open("Images/Start_LED.png"), size=(35,35))
+        
         meas_gui.add_btn_image10 = ctk.CTkImage(Image.open("Images/Save_Home_Btn.png"), size=(100,35))
         meas_gui.add_btn_image11 = ctk.CTkImage(Image.open("Images/Return_Home_Btn.png"), size=(35,35))
         
-        # Start/stop widgets													   
+        # start/stop widgets													   
         meas_gui.start_stop_frame = LabelFrame(meas_gui.root, text="Start/Stop Processes", labelanchor="n", padx=10, pady=10, bg="#eeeeee")
         meas_gui.tip_approach_btn = ctk.CTkButton(meas_gui.start_stop_frame, image=meas_gui.add_btn_image4, text="", width=100, height=35, fg_color="#eeeeee", bg_color="#eeeeee", corner_radius=0, command=meas_gui.start_tip_appr)
         meas_gui.cap_approach_btn = ctk.CTkButton(meas_gui.start_stop_frame, image=meas_gui.add_btn_image12, text="", width=100, height=45, fg_color="#eeeeee", bg_color="#eeeeee", corner_radius=0, command=meas_gui.start_cap_appr)
@@ -105,7 +106,7 @@ class HomepageWidgets:
         meas_gui.stop_led_btn = ctk.CTkLabel(meas_gui.start_stop_frame, image=meas_gui.add_btn_image8, text="", width=35, height=35, fg_color="#eeeeee", bg_color="#eeeeee", corner_radius=0)
         meas_gui.start_led_btn = ctk.CTkLabel(meas_gui.start_stop_frame, image=meas_gui.add_btn_image9, text="", width=30, height=35, fg_color="#eeeeee", bg_color="#eeeeee", corner_radius=0)
         
-        # Sweep windows frame and buttons
+        # sweep windows frame and buttons
         meas_gui.sweep_windows_frame = LabelFrame(meas_gui.root, text="Sweep Windows", labelanchor="n", padx=10, pady=10, bg="#eeeeee")
         meas_gui.acquire_iv_btn = ctk.CTkButton(meas_gui.sweep_windows_frame, image=meas_gui.add_btn_image6, text="", width=100, height=35, fg_color="#eeeeee", bg_color="#eeeeee", corner_radius=0, command=meas_gui.open_iv_window)
         meas_gui.acquire_iz_btn = ctk.CTkButton(meas_gui.sweep_windows_frame, image=meas_gui.add_btn_image7, text="", width=100, height=35, fg_color="#eeeeee", bg_color="#eeeeee", corner_radius=0, command=meas_gui.open_iz_window)
@@ -114,12 +115,8 @@ class HomepageWidgets:
         # Return/save home position buttons
         meas_gui.return_to_home_frame = LabelFrame(meas_gui.root, text="Return Home", labelanchor= "s", padx=10, pady=5, bg="#eeeeee")
         meas_gui.return_to_home_pos = ctk.CTkButton(meas_gui.return_to_home_frame, image=meas_gui.add_btn_image11, text="", width=30, height=35, fg_color="#eeeeee", bg_color="#eeeeee", corner_radius=0, command=meas_gui.return_home)
-
-       # Total distance (nm)
-        meas_gui.total_distance_frame = LabelFrame(meas_gui.start_stop_frame, text="Total Distance (nm)", padx=10, pady=2, bg="gray")
-        meas_gui.total_distance_label = Label(meas_gui.total_distance_frame, bg="white", width=15)
         
-        # Vpiezo adjust frame and buttons
+        # Piezo adjust frame and buttons
         meas_gui.vpiezo_btn_frame = LabelFrame(meas_gui.root, text="Piezo Tip Adjust", padx=10, pady=5, bg="#eeeeee")
         meas_gui.vpiezo_adjust_btn_up = ctk.CTkButton(master=meas_gui.vpiezo_btn_frame, image=meas_gui.add_btn_image0, text = "EXTEND TIP", text_color="black", font=small_font, width=40, height=40, compound="bottom", fg_color="#eeeeee", bg_color="#eeeeee", corner_radius=0, command=meas_gui.piezo_inc)
         meas_gui.vpiezo_adjust_btn_down = ctk.CTkButton(master=meas_gui.vpiezo_btn_frame, image=meas_gui.add_btn_image1, text="RETRACT TIP", text_color="black", font=small_font, width=40, height=40, compound="top", fg_color="#eeeeee", bg_color="#eeeeee", corner_radius=0, command=meas_gui.piezo_dec)
@@ -159,34 +156,34 @@ class HomepageWidgets:
         meas_gui.cache_data_var = ctk.BooleanVar()
         meas_gui.cache_data_checkbtn = ctk.CTkCheckBox(meas_gui.start_stop_frame, text="Cache Data", text_color="black", variable=meas_gui.cache_data_var, onvalue=True, offvalue=False, command=meas_gui.cache_data)
 
-        # Warning image
+        # Load the image using CTkImage
         meas_gui.warning_image = ctk.CTkImage(Image.open("Images/warning.png"), size=(200, 175))
+
+        # Create a CTkLabel and set the image
         meas_gui.warning_label = ctk.CTkLabel(meas_gui.root, image=meas_gui.warning_image,  text="")
 
-        # Tip controller parameters
+        # Tip controller 
         meas_gui.ctrl_frame = LabelFrame(meas_gui.root, text="Feedback Control Parameters", padx=10, pady=2, bg="#ADD8E6")
-        meas_gui.kp_frame = LabelFrame(meas_gui.ctrl_frame, text="Kp (nm/nA)", padx=10, pady=2, bg="#ADD8E6")
+        meas_gui.kp_frame = LabelFrame(meas_gui.ctrl_frame, text="Kp", padx=10, pady=2, bg="#ADD8E6")
         meas_gui.kp_label = Entry(meas_gui.kp_frame, bg="white", width=24)
         meas_gui.kp_label.bind("<Return>", meas_gui.saveKp)
 
-        meas_gui.kd_frame = LabelFrame(meas_gui.ctrl_frame, text="Kd (nm/nA*s)", padx=10, pady=2, bg="#ADD8E6")
+        meas_gui.kd_frame = LabelFrame(meas_gui.ctrl_frame, text="Kd", padx=10, pady=2, bg="#ADD8E6")
         meas_gui.kd_label = Entry(meas_gui.kd_frame, bg="white", width=24)
         meas_gui.kd_label.bind("<Return>", meas_gui.saveKd)
 
-        meas_gui.ki_frame = LabelFrame(meas_gui.ctrl_frame, text="Ki (nm*s/nA)", padx=10, pady=2, bg="#ADD8E6")
+        meas_gui.ki_frame = LabelFrame(meas_gui.ctrl_frame, text="Ki", padx=10, pady=2, bg="#ADD8E6")
         meas_gui.ki_label = Entry(meas_gui.ki_frame, bg="white", width=24)
         meas_gui.ki_label.bind("<Return>", meas_gui.saveKi)
 
     def publish(self, meas_gui):
         """
-        Publishes the widgets needed for data collection in the GUI. This includes 
-        setting up labels, drop-down menus, and other UI elements.
+        Method to publish widgets for collecting data.
 
         Args:
-            meas_gui (object): The GUI object that contains the root window and other 
-                            necessary attributes for managing the user interface 
-                            components.
+            meas_gui (_type_): _description_
         """
+        
         # Positioning sample rate menu
         meas_gui.label_sample_rate.grid(row=1, column=1, pady=10, sticky="nw")
         meas_gui.sample_rate_menu.grid(row=1, column=2) 
@@ -268,10 +265,6 @@ class HomepageWidgets:
         # Stop LED (red)
         meas_gui.stop_led_btn.grid(row=0, column=1, sticky="")
 
-        # Total distance position
-        meas_gui.total_distance_frame.grid(row=2, column=1, sticky="e")
-        meas_gui.total_distance_label.grid(row=0, column=0)
-
         # Sweep windows buttons
         meas_gui.sweep_windows_frame.grid(row=7, column=9, columnspan=4)
         meas_gui.acquire_iv_btn.grid(row=0, column=0, sticky="e")
@@ -309,6 +302,8 @@ class HomepageWidgets:
             - current setpoint
             - sample rate
             - sample size
+            - iv window
+            - iz window
             - reset home
             - save home
             - start tip approach 
@@ -318,13 +313,14 @@ class HomepageWidgets:
             - stop process btn
 
         Args:
-        meas_gui (object): The GUI object that contains the root window and other 
-                           necessary attributes for managing the user interface 
-                           components.
+            meas_gui (_type_): _description_
         """
+
         meas_gui.label3.configure(state="disabled")
         meas_gui.sample_rate_menu.configure(state="disabled")
         meas_gui.sample_size_entry.configure(state="disabled")
+        #meas_gui.acquire_iv_btn.configure(state="disabled")
+        #meas_gui.acquire_iz_btn.configure(state="disabled")
         meas_gui.save_home_pos.configure(state="disabled")
         meas_gui.return_to_home_pos.configure(state="disabled")
         meas_gui.tip_approach_btn.configure(state="disabled")
@@ -340,6 +336,8 @@ class HomepageWidgets:
             - current setpoint
             - sample rate
             - sample size
+            - iv window
+            - iz window
             - reset home
             - save home
             - start tip approach 
@@ -349,13 +347,14 @@ class HomepageWidgets:
             - stop process btn
 
         Args:
-        meas_gui (object): The GUI object that contains the root window and other 
-                           necessary attributes for managing the user interface 
-                           components.
+            meas_gui (_type_): _description_
         """
+        
         meas_gui.label3.configure(state="normal")
         meas_gui.sample_rate_menu.configure(state="normal")
         meas_gui.sample_size_entry.configure(state="normal")
+        #meas_gui.acquire_iv_btn.configure(state="normal")
+        #meas_gui.acquire_iz_btn.configure(state="normal")
         meas_gui.save_home_pos.configure(state="normal")
         meas_gui.return_to_home_pos.configure(state="normal")
         meas_gui.tip_approach_btn.configure(state="normal")
