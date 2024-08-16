@@ -21,6 +21,7 @@ import time
 import csv
 
 import globals
+import GUI_Master_Demo
 from value_conversion import Convert
 from ztmSerialCommLibrary import ztmCMD, ztmSTATUS, usbMsgFunctions
 
@@ -356,39 +357,54 @@ class IZWindow:
         self.delta_z_range = self.delta_z
         # Calculate step size
         self.delta_v = self.delta_z_range / globals.PIEZO_EXTN_RATIO
-        self.step_distance = self.delta_v / self.num_setpoints
+        self.step_voltage = self.delta_v / self.num_setpoints
+        self.step_distance = self.step_voltage * globals.PIEZO_EXTN_RATIO
+
+        vp_V = self.get_vpiezo_tip()
+
+        if (vp_V - self.delta_v) < 0:
+            messagebox.showerror("INVALID", f"Error. ∆z is too large for current piezo voltage. Please try a smaller value.") 
+            self.sweep_finished()
+            return
         
         # Setup plot
         self.reset_graph()
         plt.ion()
         
+        # x-axis point
+        delta_z = 0
+
         # Send a message to get vpiezo
         for i in range(0, self.num_setpoints + 1):
+            if self.STOP_BTN_FLAG == 1:
+                break
+
+            # Get data from MCU
             dataSuccess = self.send_msg_retry(self.serial_ctrl.serial_port, globals.MSG_C, ztmCMD.CMD_REQ_DATA.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_MEASUREMENTS.value)
             if not dataSuccess:
                 messagebox.showerror("INVALID", f"Error. Did not receive data from MCU.\nSweep process aborted.") 
                 self.sweep_finished()
                 return
             
-            diff_v = vp_V - self.delta_v
+            # Update current and piezo labels
+            self.update_label()
+            self.update_graph()
             
-            if diff_v < 0:
-                messagebox.showerror("INVALID", f"Error. Voltage must be greater than the ∆voltage.") 
+            # Store the data
+            self.store_data(self.delta_z_min)
+
+            # Increment the delta z for the sweep
+            delta_z += self.step_distance
+            vp_V -= self.step_voltage
+            self.update_vpiezo_tip(vp_V)
+
+            # sending vpiezo to MCU, looking for a DONE status in return
+            success = self.send_msg_retry(self.serial_ctrl.serial_port, globals.MSG_A, ztmCMD.CMD_PIEZO_ADJ.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_DONE.value, 0, 0, vp_V)
+            if not success:
+                messagebox.showerror("INVALID", f"Could not verify communication with MCU.\nSweep process aborted.") 
                 self.sweep_finished()
                 return
-            else:
-                # Update current and piezo labels
-                self.update_label()
 
-                #if i > self.x_axis_display_max_number_of_points:
-                #    self.adjusted_x_axis = vp_V - (self.x_axis_display_max_number_of_points * self.step_distance)
-
-                # Store the data
-                self.store_data(self.delta_z_min)
-
-                # Increment the delta z for the sweep
-                self.delta_z_min += self.step_distance
-            self.update_graph()
 
         if self.STOP_BTN_FLAG == 1:
             self.change_LED(RED)
@@ -700,6 +716,14 @@ class IZWindow:
         self.line, = self.ax.plot([], [], 'r-')
         self.canvas.draw()
         self.canvas.flush_events()
+
+    def get_vpiezo_tip(self):
+        return vpiezo_tip
+    
+    def update_vpiezo_tip(self, new_val):
+        vpiezo_tip = new_val
+        return
+        
 
         
    

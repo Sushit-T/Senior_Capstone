@@ -1212,10 +1212,10 @@ class MeasGUI:
         global cap_data
         global curr_data
 
-        # c = I * omega, omega = 2pi*f where f = globals.CAP_APPROACH_FREQ
+        # c = I / (omega*V), omega = 2pi*f where f = globals.CAP_APPROACH_FREQ and V = globals.CAP_APPROACH_AMPL
         w = (2 * math.pi) * globals.CAP_APPROACH_FREQ
     
-        cap_data = curr_data * w
+        cap_data = (curr_data * 1000000) / (w * globals.CAP_APPROACH_AMPL)
         
     
 ############################################# END OF CAPACITANCE APPROACH #################################################
@@ -1277,7 +1277,7 @@ class MeasGUI:
         global total_steps
         global vp_V
 
-        total_distance = (-globals.FULL_STEP_DISTANCE * total_steps) * (-globals.PIEZO_EXTN_RATIO * vp_V)
+        total_distance = (-globals.FULL_STEP_DISTANCE * total_steps) + (-globals.PIEZO_EXTN_RATIO * vp_V)
         
         self.total_distance_label.configure(text=f"{total_distance:.5f} nm")
         
@@ -2165,7 +2165,7 @@ class GraphGUI:
         self.ax.set_xlabel('Time (s)')
         
         if CAP_APPR_FLAG:
-            self.ax.set_ylabel('Capacitance')
+            self.ax.set_ylabel('Capacitance (fF)')
         else:
             self.ax.set_ylabel('Current (nA)')
             
