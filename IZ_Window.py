@@ -388,10 +388,9 @@ class IZWindow:
             
             # Update current and piezo labels
             self.update_label()
-            self.update_graph()
             
             # Store the data
-            self.store_data(self.delta_z_min)
+            self.store_data(delta_z)
 
             # Increment the delta z for the sweep
             delta_z += self.step_distance
@@ -404,7 +403,7 @@ class IZWindow:
                 messagebox.showerror("INVALID", f"Could not verify communication with MCU.\nSweep process aborted.") 
                 self.sweep_finished()
                 return
-
+        self.update_graph()
 
         if self.STOP_BTN_FLAG == 1:
             self.change_LED(RED)
@@ -414,6 +413,7 @@ class IZWindow:
             self.change_LED(RED)
             # display message to user if sweep completed
             messagebox.showinfo("Successful Sweep", f"The voltage sweep has completed.")
+
 
         self.sweep_finished()
                 
@@ -718,14 +718,10 @@ class IZWindow:
         self.canvas.flush_events()
 
     def get_vpiezo_tip(self):
-        global vpiezo_tip
-
-        return vpiezo_tip
+        return GUI_Master_Demo.vpiezo_tip
     
     def update_vpiezo_tip(self, new_val):
-        global vpiezo_tip
-        
-        vpiezo_tip = new_val
+        GUI_Master_Demo.vpiezo_tip = new_val
         return
         
 
