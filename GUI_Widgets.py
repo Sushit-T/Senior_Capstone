@@ -13,21 +13,27 @@ from PIL import Image
 class HomepageWidgets:
     def __init__(self, root, parent):
         """
-        Initialization of the class.
+        Initializes the HomepageWidgets class, setting up the root and parent 
+        attributes that are essential for managing the widget layout and interactions.
 
         Args:
-            root (_type_): _description_
-            parent (_type_): _description_
+            root (Tk or Toplevel): The root window or main container for the widgets.
+            parent (object): The parent object or controller that manages the 
+                             overall application or GUI framework. This is typically 
+                             used for accessing shared resources or methods
         """
         self.root = root
         self.parent = parent
 
     def initialize_widgets(self, meas_gui):
         """
-        Initializes widgets needed for data collection.
+        Initializes the widgets needed for data collection in the GUI. This includes 
+        setting up labels, drop-down menus, and other UI elements.
 
         Args:
-            meas_gui (_type_): _description_
+            meas_gui (object): The GUI object that contains the root window and other 
+                            necessary attributes for managing the user interface 
+                            components.
         """
 
         small_font = ("Helvetica", 12)
@@ -178,10 +184,13 @@ class HomepageWidgets:
 
     def publish(self, meas_gui):
         """
-        Method to publish widgets for collecting data.
+        Publishes the widgets needed for data collection in the GUI. This includes 
+        setting up labels, drop-down menus, and other UI elements.
 
         Args:
-            meas_gui (_type_): _description_
+            meas_gui (object): The GUI object that contains the root window and other 
+                            necessary attributes for managing the user interface 
+                            components.
         """
         
         # Positioning sample rate menu

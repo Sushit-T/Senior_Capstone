@@ -86,7 +86,8 @@ class IVWindow:
     
     def stop_reading(self):
         """
-        [ADD DESCRIPTION HERE.]
+        Stops the ongoing data reading process, re-enables the user interface widgets, 
+        and sets a flag to indicate that the stop button has been activated.
         """
         print("Stopped reading data...")
         self.enable_widgets()
@@ -96,6 +97,21 @@ class IVWindow:
     Function to error check user inputs
     '''
     def get_float_value(self, label, default_value, value_name):
+        """
+        Retrieves a floating-point value from a given label's input field. If the input 
+        is invalid (i.e., cannot be converted to a float), the function returns a 
+        specified default value and logs a message indicating the use of this default.
+
+        Args:
+            label (Entry): The tkinter Entry widget from which to retrieve the value.
+            default_value (float): The default value to use if the input is invalid.
+            value_name (str): The name of the value being retrieved, used in the 
+                            log message for clarity to the user.
+
+        Returns:
+            float: The valid floating-point value from the input field or the 
+                default value if the input was invalid.
+        """
         try:
             value = float(label.get())
         except ValueError:
@@ -104,6 +120,11 @@ class IVWindow:
         return value  
     
     def init_meas_widgets(self):
+        """
+        Initializes the widgets needed for data collection in the GUI. This includes 
+        setting up labels, drop-down menus, and other UI elements related to the IV 
+        window.
+        """
         # current
         self.frame1 = LabelFrame(self.root, text="Current (nA)", padx=10, pady=2, bg="gray")
         self.label1 = Label(self.frame1, bg="white", width=25)
@@ -158,6 +179,11 @@ class IVWindow:
         self.publish_meas_widgets()
     
     def publish_meas_widgets(self):
+        """
+        Publishes the widgets needed for data collection in the GUI. This includes 
+        setting up labels, drop-down menus, and other UI elements related to the IV 
+        window.
+        """
         # current
         self.frame1.grid(row=11, column=0, padx=5, pady=5, sticky="e")
         self.label1.grid(row=0, column=0, padx=5, pady=5)
@@ -196,6 +222,10 @@ class IVWindow:
         self.root.destroy()
         
     def init_parameters(self):
+        """
+        Initializes various parameters related to voltage settings, setpoints, 
+        and other controls to their default states.
+        """
         self.min_voltage = None
         self.max_voltage = None
         self.num_setpoints = None
@@ -238,6 +268,21 @@ class IVWindow:
         self.stop_btn.configure(state="disabled")
         
     def saveMinVoltage(self, _=None):
+        """
+        Saves the minimum voltage value input by the user. The function checks if 
+        the entered value falls within the valid bias voltage range of -10 V to 10 V. 
+        If the input is valid, the minimum voltage is saved. Otherwise, an error 
+        message is displayed.
+
+        Args:
+            _ (optional): An optional event parameter, typically passed during event 
+                        handling. This argument is not used in the method but is 
+                        included to maintain compatibility with event binding.
+
+        Raises:
+            Displays an error message if the input value is out of range or invalid, 
+            prompting the user to enter a valid value within the specified range.
+        """
         self.root.focus()
         try:
             self.min_voltage = float(self.label3.get())
@@ -250,6 +295,21 @@ class IVWindow:
             messagebox.showerror("INVALID", f"Invalid value. Please update your parameters.")
 
     def saveMaxVoltage(self, _=None):
+        """
+        Saves the maximum voltage value input by the user. The function checks if 
+        the entered value falls within the valid bias voltage range of -10 V to 10 V. 
+        If the input is valid, the maximum voltage is saved. Otherwise, an error 
+        message is displayed.
+
+        Args:
+            _ (optional): An optional event parameter, typically passed during event 
+                        handling. This argument is not used in the method but is 
+                        included to maintain compatibility with event binding.
+
+        Raises:
+            Displays an error message if the input value is out of range or invalid, 
+            prompting the user to enter a valid value within the specified range.
+        """
         self.root.focus()
         try:
             self.max_voltage = float(self.label4.get())
@@ -262,6 +322,20 @@ class IVWindow:
             messagebox.showerror("INVALID", f"Invalid value. Please update your parameters.")
 
     def saveNumSetpoints(self, _=None):
+        """
+        Saves the number of setpoints inputted by the user. The function checks if
+        the entered value is an integer. If the input is valid, the number of setpoints
+        is saved. Otherwise, an error message is displayed.
+
+        Args:
+            _ (optional): An optional event parameter, typically passed during event 
+                        handling. This argument is not used in the method but is 
+                        included to maintain compatibility with event binding.
+
+        Raises:
+            Displays an error message if the input value is out of range or invalid, 
+            prompting the user to enter a valid value within the specified range.
+        """
         self.root.focus()
         try:
             self.num_setpoints = int(self.label8.get())
@@ -270,6 +344,16 @@ class IVWindow:
             messagebox.showerror("INVALID", f"Invalid value. Please update your parameters.")
         
     def change_LED(self, color):
+        """
+        Changes the displayed LED in the user interface based on the specified color. 
+        The function removes the currently displayed LED and replaces it with the 
+        appropriate one based on if a process is running or not.
+
+        Args:
+            color (int): An integer indicating which LED to display. 
+                        - `0` displays the red LED.
+                        - `1` displays the green LED.        
+        """
         if color == 0:
             self.green_LED.grid_remove()
             self.red_LED.grid(row=0, column=1, sticky="e") 
@@ -278,15 +362,35 @@ class IVWindow:
             self.green_LED.grid(row=0, column=1, sticky="e") 
 
     # current and bias voltage
-    def update_label(self):   
+    def update_label(self):  
+        """
+        Updates the labels for the bias voltage and the current
+        during a process.
+        """ 
         self.label2.configure(text=f"{vb_V:.3f} V") # bias voltage
         self.label1.configure(text=f"{curr_data:.3f} nA") # current
 
     def get_current_label1(self):
+        """
+        Gets the value of the current during the a process.
+        """
         current_value = float(self.label1.cget("text").split()[0])  # assuming label1 text value is "value" nA
         return current_value
     
     def check_sweep_params(self):
+        """
+        Validates the sweep parameters used for data collection, including the minimum 
+        and maximum voltage, the number of setpoints, and the calculated step size. 
+        This function ensures that all parameters fall within acceptable ranges and 
+        that the sweep configuration is logically valid.
+
+        Returns:
+            bool: True if all parameters are valid, False if any validation check fails.
+
+        Raises:
+            Displays appropriate error messages for invalid parameters, prompting 
+            the user to correct the sweep settings.
+        """
         if self.min_voltage == None or self.min_voltage < globals.VBIAS_MIN or self.min_voltage > globals.VBIAS_MAX:
             messagebox.showerror("INVALID", f"Invalid minimum voltage value. Please update your parameters.")
             return False
@@ -313,6 +417,16 @@ class IVWindow:
         return True
 
     def run_bias_sweep_process(self):
+        """
+        Executes the bias voltage sweep process, sending commands to the MCU to 
+        adjust the voltage and retrieve measurement data at each step. The process 
+        iterates through a defined number of setpoints, updating the graph and 
+        user interface with the collected data.
+
+        Raises:
+            Displays appropriate error or warning messages if communication with 
+            the MCU fails or if the sweep process is aborted by the user.
+        """
         global vb_V
         GREEN = 1
         RED = 0
@@ -369,6 +483,10 @@ class IVWindow:
         self.sweep_finished()
 
     def sweep_finished(self):
+        """
+        Brings the GUI display back to its state when it is not
+        running a process.
+        """
         # disable plot interative mode
         plt.ioff()
         # # reset button states
@@ -441,18 +559,43 @@ class IVWindow:
                 return False
             
     def save_notes(self, _=None):
+            """
+            Method to save the notes inputted by the user in the notes widget.
+
+            Args:
+                _ (optional): An optional event parameter, typically passed during event 
+                            handling. This argument is not used in the method but is 
+                            included to maintain compatibility with event binding.
+
+            Returns:
+                note (string): The user inputted note to add on an exported CSV file.
+            """
             self.root.focus()
             note = self.label5.get(1.0, ctk.END)
             note = note.strip()
             return note
     
     def save_date(self, _=None):
+            """
+            Method to save the date inputted by the user in the notes widget.
+
+            Args:
+                _ (optional): An optional event parameter, typically passed during event 
+                            handling. This argument is not used in the method but is 
+                            included to maintain compatibility with event binding.
+
+            Returns:
+                date (string): The user-inputted date to add on an exported CSV file.
+            """
             self.root.focus()
             date = self.label6.get()
             return date
                 
     # file drop-down menu
     def DropDownMenu(self):
+        """
+        Method to list all the file menu options in a drop-down menu.
+        """
         self.menubar = tk.Menu(self.root)
 
         self.filemenu = tk.Menu(self.menubar, tearoff=0)
@@ -467,18 +610,27 @@ class IVWindow:
         self.root.config(menu=self.menubar)
     
     def save_graph(self):
+        """
+        Saves the current graph image with a default file name.
+        """
         downloads_folder = os.path.join(os.path.expanduser("~"), "Downloads")
         default_filename = os.path.join(downloads_folder, "iv_graph.png")
         self.fig.savefig(default_filename)
         messagebox.showinfo("Save Graph", f"Graph saved in Downloads as {default_filename}")
         
     def save_graph_as(self):
+        """
+        Saves the current graph image with a user-specified file name.
+        """
         file_path = filedialog.asksaveasfilename(defaultextension=".png", filetypes=[("PNG files", "*.png"), ("All files", "*.*")])
         if file_path:
             self.fig.savefig(file_path)
             messagebox.showinfo("Save Graph As", f"Graph saved as {file_path}")
     
     def export_data(self):
+        """
+        Exports the graph data into a CSV file.
+        """
         file_path = filedialog.asksaveasfilename(defaultextension=".csv", filetypes=[("CSV files", "*.csv"), ("All files", "*.*")])
         if file_path:
             with open(file_path, 'w', newline='') as file:
@@ -512,6 +664,9 @@ class IVWindow:
         parent_window.attributes("-disabled", False)
             
     def init_graph_widgets(self):
+        """
+        This initializes the graph widget.
+        """
         self.fig, self.ax = plt.subplots()
         #self.fig.set_figwidth(7)
         #self.fig.set_figheight(4.5)

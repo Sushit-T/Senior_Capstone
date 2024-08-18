@@ -368,6 +368,7 @@ class MeasGUI:
         self.step_up    = 0
         self.step_down  = 0
 
+        # Initialize feedback ctrl parameters
         self.kp_label.delete(0, END)
         self.kp_label.insert(0, str(globals.Kp))
         
@@ -828,7 +829,6 @@ class MeasGUI:
                     messagebox.showinfo("TUNNELING APPROACH", f"Success. The tunneling approach has ended. Received {curr_data} nA at Piezo Voltage of {Vpiezo_temp} V.")                   
                 STOP_BTN_FLAG = 0
                 plt.ioff()
-                #self.feedback_ctrl_btn.configure(state="normal")
                 self.stop_leds()
                 self.initializer.enable_widgets(self)
             else:
@@ -1078,7 +1078,7 @@ class MeasGUI:
             
             if success:
                 #########
-                # Init GUI stuff
+                # Init graph and necessary GUI widgets
                 self.parent.graph_gui.reset_graph()
                 plt.ion()
                 self.startup_leds()
@@ -1360,11 +1360,17 @@ class MeasGUI:
 
     def savePiezoValue(self, _=None):         
         """
-        Method to save the piezo voltage delta value; the
-        value cannot be less than 3 mV.
+        Saves the piezo voltage delta value, ensuring that it is not less than a 
+        specified minimum value (3 mV by default). If the input voltage is below 
+        this threshold, the value is reset to the minimum, and an error message is shown.
+
+        This method also updates the display and distance calculation based on the 
+        input voltage.
 
         Args:
-            event (_type_): [ADD DESCRIPTION HERE.]
+            _ (optional): An optional event parameter, typically passed during event 
+                        handling. This argument is not used in the method but is 
+                        included to maintain compatibility with event binding.
         """
         if self.check_connection():
             self.root.focus()
@@ -1481,11 +1487,20 @@ class MeasGUI:
                 
     def saveCurrentSetpoint(self, _=None): 
         """
-        Function to save the user inputted value of current setpoint to use for 
-        the tip approach algorithm. The valid range is 0.1 nA to 10 nA.
-        
+         Saves the user-inputted current setpoint value to be used in the tip approach 
+        algorithm. The function ensures the value is within the valid range of 
+        0.1 nA to 10 nA. Depending on whether the setpoint is positive or negative, 
+        corresponding flags are set to indicate the current polarity.
+
         Args:
-            _ (_type_): [ADD DESCRIPTION HERE.]
+            _ (optional): An optional event parameter, typically passed during event 
+                        handling. This argument is not used in the method but is 
+                        included to maintain compatibility with event binding.
+
+        Returns:
+            bool: True if the current setpoint is within a valid range and the 
+                appropriate flag is set. False if the setpoint is invalid, 
+                resetting the input to 0.000 and clearing the flags.
         """
         global curr_setpoint 
         global POS_CURR_SETPOINT_FLAG
@@ -1514,11 +1529,14 @@ class MeasGUI:
 
     def saveCurrentOffset(self, _=None): 
         """
-        Save current offset and uses to offset the graph.
-        QUESTION: Range for current offset?
+        Saves the user-inputted current offset value, which is used to adjust 
+        the graph's offset. If the input is empty or invalid, the offset is reset 
+        to 0.000, and an error message is displayed if necessary.
 
         Args:
-            event (_type_): [ADD DESCRIPTION HERE.]
+            _ (optional): An optional event parameter, typically passed during event 
+                        handling. This argument is not used in the method but is 
+                        included to maintain compatibility with event binding.
         """
         if self.check_connection():
             self.root.focus()
@@ -1541,11 +1559,20 @@ class MeasGUI:
 
     def saveSampleBias(self, _=None): 
         """
-        Function to send vbias msg to the MCU and waits for a DONE response, 
-        witha  valid range of -10 V to 10 V.
+        Saves the user-inputted bias voltage value to be used in the tip approach 
+        algorithm. The function ensures the value is within the valid range of 
+        -10 V to 10 V. Depending on whether the bias voltage is positive or negative, 
+        corresponding flags are set to indicate the bias voltage polarity.
 
         Args:
-            event (_type_): [ADD DESCRIPTION HERE.]
+            _ (optional): An optional event parameter, typically passed during event 
+                        handling. This argument is not used in the method but is 
+                        included to maintain compatibility with event binding.
+
+        Returns:
+            bool: True if the bias voltage is within a valid range and the 
+                appropriate flag is set. False if the bias voltage is invalid, 
+                resetting the input to 0.000 and clearing the flags.
         """
         global vbias_save
         global vbias_done_flag
@@ -1633,10 +1660,19 @@ class MeasGUI:
             
     def saveSampleRate(self, _=None):
         """
-        Saves sample rate as an integer and sends that to the MCU.
+         Saves the selected sample rate as an integer value and sends it to the 
+        ZTM controller for configuration. The function attempts to 
+        send the new sample rate multiple times within a timeout period until 
+        the ZTM controller acknowledges the change.
 
         Args:
-            _ (_type_): [ADD DESCRIPTION HERE.]
+            _ (optional): An optional event parameter, typically passed during event 
+                        handling. This argument is not used in the method but is 
+                        included to maintain compatibility with event binding.
+
+        Raises:
+            Displays an informational message if the sample rate change is not 
+            processed within the timeout period.
         """
         global sample_rate_done_flag
         global sample_rate_save
@@ -1675,11 +1711,21 @@ class MeasGUI:
                 
     def saveSampleSize(self, _=None):
         """
-        Send sample size as an integer and sends that to the MCU with a
-        valid range of 1 to 1024.
+        Saves the user-inputted sample size as an integer and sends it to the 
+        ZTM controller for configuration. The valid range for the sample size 
+        is 1 to 1024. If the input is out of this range, it will be adjusted 
+        to the nearest valid value, and an error message will be displayed.
 
         Args:
-            _ (_type_): [ADD DESCRIPTION HERE.]
+            _ (optional): An optional event parameter, typically passed during event 
+                        handling. This argument is not used in the method but is 
+                        included to maintain compatibility with event binding.
+
+        Raises:
+            Displays an error message if the input value is invalid or not within 
+            the range of 1 to 1024. If the sample size change is not processed 
+            within the timeout period, an informational message is shown.
+
         """
         global sample_size_save
         global sample_size_done_flag
@@ -1727,10 +1773,16 @@ class MeasGUI:
                         
     def saveStepperMotorAdjust(self, _=None):
         """
-        Saves adjust stepper motor step size as an integer 'fine_adjust_step_size' .
+        Saves the adjustment step size for the stepper motor as an integer value 
+        stored in `fine_adjust_step_size`. The step size is determined based on 
+        the user's selection, which can be "Full", "Half", "Quarter", or "Eighth" 
+        steps. The corresponding approximate step distance is also calculated 
+        and displayed to the user.
 
         Args:
-            _ (_type_): [ADD DESCRIPTION HERE.]
+            _ (optional): An optional event parameter, typically passed during event 
+                        handling. This argument is not used in the method but is 
+                        included to maintain compatibility with event binding.
         """
         if self.check_connection():
             return
@@ -1899,7 +1951,7 @@ class MeasGUI:
 
     def update_label(self):
         """
-        Method to update the value of ADC current in label 2.
+        Method to update the value of ADC current in label 4.
         """
         global curr_data
         global vp_V
@@ -1913,17 +1965,19 @@ class MeasGUI:
         self.label2.configure(text=f"{curr_data:.4f} nA")
         self.label12.configure(text=f"{vp_V:.5f} ")
         
-        self.totalDistance()
+        self.totalDistance() # Calculates the total distance during a process
 
     def save_notes(self, _=None):
         """
         Method to save the notes inputted by the user in the notes widget.
 
         Args:
-            _ (_type_, optional): [ADD DESCRIPTION HERE.] Defaults to None.
+            _ (optional): An optional event parameter, typically passed during event 
+                        handling. This argument is not used in the method but is 
+                        included to maintain compatibility with event binding.
 
         Returns:
-            note (string): _description_
+            note (string): The user inputted note to add on an exported CSV file.
         """
         if self.check_connection():
             self.root.focus()
@@ -1936,13 +1990,15 @@ class MeasGUI:
     
     def save_date(self, _=None):
         """
-        Method to save the date inputted by the user in the notes widget.
+         Method to save the date inputted by the user in the notes widget.
 
         Args:
-            _ (_type_, optional): [ADD DESCRIPTION HERE.] Defaults to None.
+            _ (optional): An optional event parameter, typically passed during event 
+                        handling. This argument is not used in the method but is 
+                        included to maintain compatibility with event binding.
 
         Returns:
-            date (string): _description_
+            date (string): The user-inputted date to add on an exported CSV file.
         """
         if self.check_connection():
             self.root.focus()
@@ -2020,6 +2076,11 @@ class MeasGUI:
             messagebox.showinfo("Export Data", f"Data exported as {file_path}")
     
     def cache_data(self):
+        """
+        During a process the user has the option to cache-data. In order to optimize
+        the application, old data is thrown away after the buffer reaches a certain limit.
+        If the user wishes to keep old data, the user can store it in this CSV file.
+        """
         global curr_data
         
         if self.cache_data_var.get():

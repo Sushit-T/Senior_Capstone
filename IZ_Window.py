@@ -34,7 +34,11 @@ vp_V = 0
 class IZWindow:
     def __init__(self, root, serial_ctrl):
         """
-        [ADD DESCRIPTION HERE.]
+        Initialize the IVWindow class which sets up the GUI for acquiring I-V measurements.
+
+        Args:
+            root (tkinter.Tk): The root window of the application.
+            port (str or None): The serial port to which the device is connected. If None, it indicates no connection.
         """
         self.root = root
         self.serial_ctrl = serial_ctrl
@@ -59,7 +63,7 @@ class IZWindow:
         
     def start_reading(self):
         """
-        [ADD DESCRIPTION HERE.]
+        Starts reading bias voltage and current from the MCU.
         """
         if globals.STOP_ALL_FLAG:
             print("Starting to read data...")
@@ -79,7 +83,8 @@ class IZWindow:
     
     def stop_reading(self):
         """
-        [ADD DESCRIPTION HERE.]
+         Stops the ongoing data reading process, re-enables the user interface widgets, 
+        and sets a flag to indicate that the stop button has been activated.
         """
         print("Stopped reading data...")
         self.enable_widgets()
@@ -87,7 +92,19 @@ class IZWindow:
     
     def get_float_value(self, label, default_value, value_name):
         """
-        Function to error check user inputs.
+        Retrieves a floating-point value from a given label's input field. If the input 
+        is invalid (i.e., cannot be converted to a float), the function returns a 
+        specified default value and logs a message indicating the use of this default.
+
+        Args:
+            label (Entry): The tkinter Entry widget from which to retrieve the value.
+            default_value (float): The default value to use if the input is invalid.
+            value_name (str): The name of the value being retrieved, used in the 
+                            log message for clarity to the user.
+
+        Returns:
+            float: The valid floating-point value from the input field or the 
+                default value if the input was invalid.
         """
         try:
             value = float(label.get())
@@ -98,7 +115,9 @@ class IZWindow:
 
     def init_meas_widgets(self):
         """
-        [ADD DESCRIPTION HERE.]
+        Initializes the widgets needed for data collection in the GUI. This includes 
+        setting up labels, drop-down menus, and other UI elements related to the IZ
+        window.
         """
         # piezo extension
         self.frame1 = LabelFrame(self.root, text="ΔZ/Piezo Extension (nm)", padx=10, pady=2, bg="gray")
@@ -158,7 +177,9 @@ class IZWindow:
     
     def publish_meas_widgets(self):
         """
-        [ADD DESCRIPTION HERE.]
+        Publishes the widgets needed for data collection in the GUI. This includes 
+        setting up labels, drop-down menus, and other UI elements related to the IZ
+        window.
         """
         # piezo extension
         #self.frame1.grid(row=13, column=0, padx=5, pady=5, sticky=SE)
@@ -291,6 +312,20 @@ class IZWindow:
     '''
     
     def saveNumSetpoints(self, _=None):
+        """
+        Saves the number of setpoints inputted by the user. The function checks if
+        the entered value is an integer. If the input is valid, the number of setpoints
+        is saved. Otherwise, an error message is displayed.
+
+        Args:
+            _ (optional): An optional event parameter, typically passed during event 
+                        handling. This argument is not used in the method but is 
+                        included to maintain compatibility with event binding.
+
+        Raises:
+            Displays an error message if the input value is out of range or invalid, 
+            prompting the user to enter a valid value within the specified range.
+        """
         self.root.focus()
         try:
             self.num_setpoints = int(self.label9.get())
@@ -300,24 +335,34 @@ class IZWindow:
 
     def update_label(self):   
         """
-        [ADD DESCRIPTION HERE.]
+        Updates the labels for the piezo voltage and the current
+        during a process.
         """
         self.label2.configure(text=f"{vp_V:.3f} V") # piezo voltage
         self.label3.configure(text=f"{curr_data:.3f} nA") # current
 
     def get_current_label3(self):
         """
-        [ADD DESCRIPTION HERE.]
+        Gets the value of the current during the a process.
         """
         current_value = float(self.label3.cget("text").split()[0])  # assuming label3 text value is "value" nA
         return current_value
 
     def check_sweep_params(self):
         """
-        [ADD DESCRIPTION HERE.]
+        Validates the sweep parameters used for data collection, including delta z and the number
+        of setpoints. This function ensures that all parameters fall within acceptable ranges and
+        that the sweep configuration is logically valid.
+
+        Returns:
+            bool: True if all parameters are valid, False if any validation check fails.
+
+        Raises:
+            Displays appropriate error messages for invalid parameters, prompting 
+            the user to correct the sweep settings.
         """
         if self.delta_z == None:
-            messagebox.showerror("INVALID", f"Invalid ∆z. Please update your paremeters.")
+            messagebox.showerror("INVALID", f"Invalid ∆z. Please update your parameters.")
             return False
         
         '''
@@ -327,7 +372,7 @@ class IZWindow:
         '''
         
         if self.num_setpoints == None or self.num_setpoints <= globals.NUM_SETPOINTS_MIN:
-            messagebox.showerror("INVALID", f"Invalid Number of Setpoints. Please update your paremeters.") 
+            messagebox.showerror("INVALID", f"Invalid Number of Setpoints. Please update your parameters.") 
             return False
         
         '''
@@ -346,6 +391,13 @@ class IZWindow:
         return True
 
     def run_iz_process(self):
+        """
+        This is the sweep process to get the current as a function of delta z. It takes
+        the user inputted number of setpoints and determines the delta z step size the
+        sweep must increment by, with a range of 0 to delta z. Once it has completed the
+        sweep process will be completed. If the user presses the 'Stop' button the sweep
+        process will halt.
+        """
         global vp_V
         
         GREEN   = 1
@@ -480,7 +532,8 @@ class IZWindow:
     
     def sweep_finished(self):
         """
-        [ADD DESCRIPTION HERE.]
+        Brings the GUI display back to its state when it is not
+        running a process.
         """
         # disable plot interative mode
         plt.ioff()
@@ -492,7 +545,14 @@ class IZWindow:
 
     def change_LED(self, color):
         """
-        [ADD DESCRIPTION HERE.]
+        Changes the displayed LED in the user interface based on the specified color. 
+        The function removes the currently displayed LED and replaces it with the 
+        appropriate one based on if a process is running or not.
+
+        Args:
+            color (int): An integer indicating which LED to display. 
+                        - `0` displays the red LED.
+                        - `1` displays the green LED.        
         """
         if color == 0:
             self.green_LED.grid_remove()
@@ -566,7 +626,15 @@ class IZWindow:
 
     def save_notes(self, _=None):
         """
-        [ADD DESCRIPTION HERE.]
+        Method to save the notes inputted by the user in the notes widget.
+
+        Args:
+            _ (optional): An optional event parameter, typically passed during event 
+                        handling. This argument is not used in the method but is 
+                        included to maintain compatibility with event binding.
+
+        Returns:
+            note (string): The user inputted note to add on an exported CSV file.
         """
         self.root.focus()
         note = self.label6.get(1.0, ctk.END)
@@ -575,7 +643,15 @@ class IZWindow:
     
     def save_date(self, _=None):
         """
-        [ADD DESCRIPTION HERE.]
+        Method to save the date inputted by the user in the notes widget.
+
+        Args:
+            _ (optional): An optional event parameter, typically passed during event 
+                        handling. This argument is not used in the method but is 
+                        included to maintain compatibility with event binding.
+
+        Returns:
+            date (string): The user-inputted date to add on an exported CSV file.
         """
         self.root.focus()
         date = self.label7.get()
@@ -583,7 +659,7 @@ class IZWindow:
         
     def DropDownMenu(self):
         """
-        [ADD DESCRIPTION HERE.]
+        Method to list all the file menu options in a drop-down menu.
         """
         self.menubar = tk.Menu(self.root)
         
@@ -600,7 +676,7 @@ class IZWindow:
     
     def save_graph(self):
         """
-        [ADD DESCRIPTION HERE.]
+        Saves the current graph image with a default file name.
         """
         downloads_folder = os.path.join(os.path.expanduser("~"), "Downloads")
         default_filename = os.path.join(downloads_folder, "graph.png")
@@ -609,7 +685,7 @@ class IZWindow:
         
     def save_graph_as(self):
         """
-        [ADD DESCRIPTION HERE.]
+        Saves the current graph image with a user-specified file name.
         """
         file_path = filedialog.asksaveasfilename(defaultextension=".png", filetypes=[("PNG files", "*.png"), ("All files", "*.*")])
         if file_path:
