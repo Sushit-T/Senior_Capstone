@@ -49,7 +49,7 @@ class HomepageWidgets:
         # Sample size user entry
         meas_gui.sample_size = LabelFrame(meas_gui.root, text="Sample Size", padx=10, pady=2, bg="#ADD8E6")
         meas_gui.sample_size_entry = Entry(meas_gui.sample_size, bg="white", width=26)
-        meas_gui.sample_size_entry.bind("<Return>", meas_gui.saveSampleSize)
+        meas_gui.sample_size_entry.bind("<FocusOut>", meas_gui.saveSampleSize)
 
         # distance  ### ADJUST LATER
         meas_gui.frame1 = LabelFrame(meas_gui.root, text="Distance (nm)", padx=10, pady=2, bg="gray", width=20)
@@ -62,26 +62,26 @@ class HomepageWidgets:
         # current setpoint
         meas_gui.frame3 = LabelFrame(meas_gui.root, text="Current Setpoint (nA)", padx=10, pady=2, bg="#ADD8E6")
         meas_gui.label3 = Entry(meas_gui.frame3, bg="white", width=24)
-        meas_gui.label3.bind("<Return>", meas_gui.saveCurrentSetpoint)
+        meas_gui.label3.bind("<FocusOut>", meas_gui.saveCurrentSetpoint)
         
         # current offset
         meas_gui.frame4 = LabelFrame(meas_gui.root, text="Current Offset (nA)", padx=10, pady=2, bg="#ADD8E6")
         meas_gui.label4 = Entry(meas_gui.frame4, bg="white", width=24)
-        meas_gui.label4.bind("<Return>", meas_gui.saveCurrentOffset)
+        meas_gui.label4.bind("<FocusOut>", meas_gui.saveCurrentOffset)
                 
         # sample bias
         meas_gui.frame6 = LabelFrame(meas_gui.root, text="Sample Bias (V)", padx=10, pady=2, bg="#ADD8E6")
         meas_gui.label6 = Entry(meas_gui.frame6, bg="white", width=24)
-        meas_gui.label6.bind("<Return>", meas_gui.saveSampleBias)
+        meas_gui.label6.bind("<FocusOut>", meas_gui.saveSampleBias)
 
         # user notes text box
         meas_gui.frame7 = LabelFrame(meas_gui.root, text="NOTES", padx=10, pady=5, bg="#ADD8E6")
         meas_gui.label7 = Text(meas_gui.frame7, height=7, width=30)
-        meas_gui.label7.bind("<Return>", meas_gui.save_notes)
+        meas_gui.label7.bind("<FocusOut>", meas_gui.save_notes)
         
         meas_gui.label8 = Entry(meas_gui.frame7, width=10)
         meas_gui.label9 = Label(meas_gui.frame7, padx=10, text="Date:", height=1, width=5)
-        meas_gui.label8.bind("<Return>", meas_gui.save_date)
+        meas_gui.label8.bind("<FocusOut>", meas_gui.save_date)
     
         # define images
         meas_gui.add_btn_image0 = ctk.CTkImage(Image.open("Images/Vpzo_Up_Btn.png"), size=(40,40))
@@ -138,7 +138,7 @@ class HomepageWidgets:
         ### ADJUST LATER
         meas_gui.label_vpeizo_delta_distance = Label(meas_gui.frame10, text="Approx. Dist", bg="#d0cee2", width=9, anchor="w")
         meas_gui.label10 = Entry(meas_gui.frame10, bg="white", width=10)
-        meas_gui.label10.bind("<Return>", meas_gui.savePiezoValue)
+        meas_gui.label10.bind("<FocusOut>", meas_gui.savePiezoValue)
         meas_gui.label11 = Label(meas_gui.frame10, bg="white", width=10)
         meas_gui.label_vpeizo_total = Label(meas_gui.frame10, text="Total Voltage", bg="#d0cee2", width=10, anchor="w")
         meas_gui.label12 = Label(meas_gui.frame10, bg="white", width=10)
@@ -172,15 +172,15 @@ class HomepageWidgets:
         meas_gui.ctrl_frame = LabelFrame(meas_gui.root, text="Feedback Control Parameters", padx=10, pady=2, bg="#ADD8E6")
         meas_gui.kp_frame = LabelFrame(meas_gui.ctrl_frame, text="Kp", padx=10, pady=2, bg="#ADD8E6")
         meas_gui.kp_label = Entry(meas_gui.kp_frame, bg="white", width=24)
-        meas_gui.kp_label.bind("<Return>", meas_gui.saveKp)
+        meas_gui.kp_label.bind("<FocusOut>", meas_gui.saveKp)
 
         meas_gui.kd_frame = LabelFrame(meas_gui.ctrl_frame, text="Kd", padx=10, pady=2, bg="#ADD8E6")
         meas_gui.kd_label = Entry(meas_gui.kd_frame, bg="white", width=24)
-        meas_gui.kd_label.bind("<Return>", meas_gui.saveKd)
+        meas_gui.kd_label.bind("<FocusOut>", meas_gui.saveKd)
 
         meas_gui.ki_frame = LabelFrame(meas_gui.ctrl_frame, text="Ki", padx=10, pady=2, bg="#ADD8E6")
         meas_gui.ki_label = Entry(meas_gui.ki_frame, bg="white", width=24)
-        meas_gui.ki_label.bind("<Return>", meas_gui.saveKi)
+        meas_gui.ki_label.bind("<FocusOut>", meas_gui.saveKi)
 
     def publish(self, meas_gui):
         """
