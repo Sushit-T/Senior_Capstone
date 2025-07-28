@@ -145,7 +145,9 @@ class HomepageWidgets:
         
         # Stepper motor adjust frame and buttons
         meas_gui.fine_adjust_frame = LabelFrame(meas_gui.root, text="Stepper Motor", padx=10, pady=5, bg="#eeeeee")
-        meas_gui.fine_adjust_btn_up = ctk.CTkButton(master=meas_gui.fine_adjust_frame, image=meas_gui.add_btn_image2, text = "RETRACT MOTOR", text_color="black", font=small_font, width=50, height=45, compound="bottom", fg_color="#eeeeee", bg_color="#eeeeee", corner_radius=0, command=meas_gui.stepper_motor_up)
+        meas_gui.fine_adjust_btn_up = ctk.CTkButton(master=meas_gui.fine_adjust_frame, image=meas_gui.add_btn_image2, text = "RETRACT MOTOR", text_color="black", font=small_font, width=50, height=45, compound="bottom", fg_color="#eeeeee", bg_color="#eeeeee", corner_radius=0) #, command=meas_gui.stepper_motor_up)
+        meas_gui.fine_adjust_btn_up.bind("<ButtonPress-1>", meas_gui.start_motor_up) # Added
+        meas_gui.fine_adjust_btn_up.bind("<ButtonRelease-1>", meas_gui.stop_motor) # Added
         meas_gui.fine_adjust_btn_down = ctk.CTkButton(master=meas_gui.fine_adjust_frame, image=meas_gui.add_btn_image3, text="EXTEND MOTOR", text_color="black", font=small_font, width=50, height=45, compound="top", fg_color="#eeeeee", bg_color="#eeeeee", corner_radius=0, command=meas_gui.stepper_motor_down)
 
         # Stepper motor adjust step size
