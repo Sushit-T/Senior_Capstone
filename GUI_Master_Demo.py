@@ -377,6 +377,10 @@ class MeasGUI:
         
         self.ki_label.delete(0, END)
         self.ki_label.insert(0, str(globals.Ki))
+
+        # Initialize threading flags for motor hold
+        self._motor_hold_thread = None
+        self._motor_hold_active = False
         
         # Initialize measurement widgets
         self.update_label()
