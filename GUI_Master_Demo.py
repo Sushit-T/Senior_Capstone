@@ -1813,6 +1813,26 @@ class MeasGUI:
             self.step_down = 0
             self.sendStepperMotorAdjust()
     
+    ## -------------Holding the Button---------------------
+    def start_motor_up(self, event=None):
+        """
+        Starts continuously moving the motor up while the button is pressed.
+        """
+        self.motor_running = True
+        self._run_motor_up()
+
+    def _run_motor_up(self):
+        if self.motor_running:
+            self.stepper_motor_up()  # Call your existing step function
+            self.root.after(100, self._run_motor_up)  # Call this function again after 100ms
+
+    def stop_motor(self, event=None):
+        """
+        Stops the continuous motor movement when the button is released.
+        """
+        self.motor_running = False
+    ## ----------------------------------
+
     def stepper_motor_down(self):
         """
         Handles the button click for the stepper motor down arrow.
