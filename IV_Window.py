@@ -41,7 +41,9 @@ class IVWindow:
         """
         self.root = root
         self.serial_ctrl = serial_ctrl
-        
+        self.root.attributes("-topmost", True)
+
+
         # Check if a serial connection has been established when opening the window
         if self.serial_ctrl.serial_port == None:
             messagebox.showerror("INVALID", f"No serial connection detected.\nConnect to USB via homepage and try again.") 

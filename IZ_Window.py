@@ -42,6 +42,8 @@ class IZWindow:
         """
         self.root = root
         self.serial_ctrl = serial_ctrl
+        self.root.attributes("-topmost", True)
+
 
         # check if a serial connection has been established when opening the window
         if self.serial_ctrl.port == None:
