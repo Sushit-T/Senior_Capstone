@@ -811,9 +811,13 @@ class MeasGUI:
                         if(abs(curr_data) >= abs(curr_setpoint)):
                             Vpiezo_temp = vpiezo_tip
                             adjust_success = self.send_msg_retry(port, globals.MSG_D, ztmCMD.CMD_STEPPER_ADJ.value, ztmSTATUS.STATUS_CLR.value, ztmSTATUS.STATUS_DONE.value, globals.EIGHTH_STEP, globals.DIR_UP, globals.NUM_STEPS)
-                            self.piezo_full_retract()
+                            #self.piezo_full_retract()
+
                             if adjust_success:
-                                total_steps -= globals.INC_EIGHT
+                                #total_steps -= globals.INC_EIGHT
+                                vpiezo_tip, total_steps = self.auto_move_tip(total_steps, globals.APPROACH_STEP_SIZE_NM, globals.DIR_UP)
+                                #vpiezo_tip, total_steps = self.auto_move_tip(total_steps, globals.SMALL_RETRACT_STEP_NM, globals.DIR_UP)
+
                                 TUNN_APPROACH_ESCAPE_FLG = 1
                                 approachProcess = False
                                 break
